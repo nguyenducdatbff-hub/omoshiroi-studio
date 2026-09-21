@@ -1,0 +1,27 @@
+# Environment variables & API Keys (BẢO MẬT TUYỆT ĐỐI)
+.env
+.env.local
+*.key
+
+# Output directory (chứa toàn bộ video render của người dùng - KHÔNG ĐƯA LÊN GITHUB)
+output/
+temp_scratch/
+
+# Python virtual environment & cache
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Distribution & builds
+build/
+dist/
+*.egg-info/
+
+# Logs & temp
+*.log
+temp_update.zip
+temp_update_extracted/

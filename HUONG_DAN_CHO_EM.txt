@@ -1,0 +1,68 @@
+=====================================================================
+          HƯỚNG DẪN SỬ DỤNG OMOSHIROI STUDIO (DÀNH CHO EM)
+=====================================================================
+
+Chào em! Đây là bộ công cụ tạo Video Ngắn TikTok/Shorts phong cách Châm Biếm
+và Tòa Án Nhật Bản (như kênh Omoshiro). Tool chạy 100% trên giao diện Web 
+rất dễ dùng, không cần biết lập trình hay code gì cả!
+
+---------------------------------------------------------------------
+BƯỚC 1: CÀI ĐẶT LẦN ĐẦU TIÊN (CHỈ CẦN LÀM 1 LẦN DUY NHẤT)
+---------------------------------------------------------------------
+1. Máy tính cần có Python (nếu chưa có, tải bản mới nhất tại: python.org)
+   *LƯU Ý CỰC KỲ QUAN TRỌNG: Lúc bấm cài đặt Python, nhớ tích chọn vào ô:
+   "[v] Add python.exe to PATH" ở dưới cùng màn hình nhé!
+
+2. Click đúp chuột vào file:
+   👉 CAI_DAT_NHANH.bat
+   (Máy sẽ tự động tải các thư viện cần thiết trong 1-2 phút).
+
+---------------------------------------------------------------------
+BƯỚC 2: MỖI LẦN MUỐN DÙNG TẠO VIDEO
+---------------------------------------------------------------------
+Em chỉ cần click đúp chuột vào file:
+   👉 CHAY_TOOL.bat
+
+-> Trình duyệt web (Chrome / Edge / Cốc Cốc) sẽ TỰ ĐỘNG BẬT LÊN
+   tại địa chỉ: http://localhost:8000.
+
+---------------------------------------------------------------------
+BƯỚC 3: CÁCH TẠO VIDEO TRÊN WEB
+---------------------------------------------------------------------
+1. CHỌN CHỦ ĐỀ:
+   - Bấm vào 1 trong 10 ô chủ đề (Tòa án, Bệnh viện, Công sở, Trường học...).
+   - Tool sẽ TỰ ĐỘNG nạp sẵn kịch bản mẫu tiếng Nhật và dịch nghĩa tiếng Việt.
+
+2. MUỐN Ý TƯỞNG MỚI (AI TỰ VIẾT):
+   - Nhập bất kỳ ý tưởng tiếng Việt nào vào ô "Hoặc Nhập Đề Tài Mới".
+   - Ví dụ: "Đi làm muộn bị sếp phạt", "Bác sĩ Google đòi viết di chúc"...
+   - Bấm nút "AI Viết Kịch Bản" -> AI sẽ tự động viết câu chuyện tiếng Nhật cho em!
+
+3. XUẤT VIDEO:
+   - Bấm nút to màu cam đỏ: "🎬 XUẤT BẢN VIDEO SHORTS (1-CLICK)".
+   - Đợi máy tạo video trong khoảng 30-40 giây.
+   - Khi xong, video sẽ tự phát trên màn hình điện thoại bên phải.
+
+---------------------------------------------------------------------
+BƯỚC 4: LẤY VIDEO VÀ CAPTION ĐĂNG TIKTOK
+---------------------------------------------------------------------
+- Em có thể bấm nút "Tải Video MP4" và "Sao chép Caption" ngay trên web.
+- Hoặc mở thư mục "output" trong máy, toàn bộ video và caption đã được
+  xếp gọn gàng theo từng thư mục tên vụ án!
+
+---------------------------------------------------------------------
+BƯỚC 5: CẬP NHẬT KHI CÓ TÍNH NĂNG MỚI (RẤT TIỆN LỢI!)
+---------------------------------------------------------------------
+- Khi nào anh/chị báo có tính năng mới (thêm nhân vật, bối cảnh, giọng mới...):
+- Em chỉ cần click đúp chuột vào file:
+  👉 CAP_NHAT_TOOL.bat
+- Chờ 5 giây là xong! 
+- *Yên tâm:* Video em đã tạo và API Key không bao giờ bị mất hay bị ghi đè!
+
+---------------------------------------------------------------------
+VỀ GEMINI API KEY (DÙNG CHUNG VỚI ANH/CHỊ):
+---------------------------------------------------------------------
+- Em có thể dùng chung tài khoản API Key với anh/chị hoàn toàn miễn phí.
+- Nếu thấy góc trên bên phải hiện nút "Cài API Key", em chỉ cần bấm vào đó
+  và dán mã Key mà anh/chị gửi cho em rồi bấm "Lưu Key" là xong nhé!
+=====================================================================

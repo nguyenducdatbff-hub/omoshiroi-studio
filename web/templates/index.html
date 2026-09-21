@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMOSHIROI STUDIO - Tạo Video TikTok Châm Biếm & Tòa Án</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#0f172a',
+                        card: '#1e293b',
+                        accent: '#f59e0b',
+                    },
+                    fontFamily: {
+                        dela: ['"Dela Gothic One"', 'sans-serif'],
+                        zenmaru: ['"Zen Maru Gothic"', 'sans-serif'],
+                        jp: ['"Noto Sans JP"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Noto+Sans+JP:wght@400;700;900&family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .font-dela { font-family: 'Dela Gothic One', cursive, sans-serif; }
+        .font-zenmaru { font-family: 'Zen Maru Gothic', sans-serif; }
+        .font-jp { font-family: 'Noto Sans JP', sans-serif; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(245, 158, 11, 0.4);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-pink-500 flex items-center justify-center text-xl shadow-lg shadow-amber-500/20">
+                    ⚖️
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-amber-300 via-rose-300 to-pink-300 bg-clip-text text-transparent">
+                            OMOSHIROI STUDIO
+                        </h1>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                            10 CHỦ ĐỀ DRAMA
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400">Tạo Video Ngắn Châm Biếm & Tòa Án Phán Quyết Chuẩn TikTok Nhật Bản</p>
+                </div>
+            </div>
+
+            <!-- Right Controls: API Key & Mascot -->
+            <div class="flex items-center gap-3">
+                <!-- Gemini API Key Button & Modal Dropdown -->
+                <div class="relative">
+                    <button onclick="toggleKeyModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 transition shadow">
+                        <i class="fa-solid fa-key text-amber-400"></i>
+                        <span id="keyStatusText">Gemini API Key</span>
+                    </button>
+
+                    <div id="keyModal" class="hidden absolute right-0 top-11 w-84 p-4 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl z-50 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-brain"></i> Cài Đặt Gemini API Key
+                            </h3>
+                            <button onclick="toggleKeyModal()" class="text-slate-400 hover:text-white text-xs px-1">✕</button>
+                        </div>
+                        <p class="text-[11px] text-slate-400 leading-relaxed">
+                            Key chỉ được lưu trong trình duyệt này. Khi tạo kịch bản, app gửi key qua máy chủ cục bộ để gọi Gemini.
+                        </p>
+                        <div class="relative">
+                            <input type="password" id="geminiKeyInput" placeholder="Dán Gemini API Key vào đây..." class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3 pr-9 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
+                            <button type="button" onclick="toggleKeyVisibility()" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-amber-300 text-xs transition" title="Hiện / Ẩn Key">
+                                <i id="eyeIcon" class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-2 pt-1">
+                            <button onclick="saveApiKey()" class="flex-1 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">Lưu Key</button>
+                            <button onclick="copySavedApiKey()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold transition border border-slate-700 flex items-center gap-1" title="Sao chép Key để gửi cho người khác">
+                                <i class="fa-regular fa-copy"></i> Chép
+                            </button>
+                            <button onclick="clearApiKey()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 text-xs transition">Xóa</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mascot Badge -->
+                <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
+                    <span class="text-base">🐱</span>
+                    <span class="font-semibold text-amber-300">肥満裁判官猫</span>
+                    <span class="text-[10px] text-slate-400">Mascot Active</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left: Matchup, Script & Editor (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+            
+            <!-- Step 1: Duo Matchup Selection (10 Cặp Đối Đầu) -->
+            <div class="glass-panel p-6 rounded-2xl shadow-xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold flex items-center gap-2 text-amber-400">
+                            <i class="fa-solid fa-users-viewfinder"></i> 1. Chọn Cặp Đối Đầu (10 Chủ Đề Drama)
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5" id="currentMatchupDesc">Thẩm phán xét xử bị cáo, bóc trần tội lỗi & tuyên án răn đe</p>
+                    </div>
+                    <span class="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
+                        Tự load kịch bản mẫu
+                    </span>
+                </div>
+
+                <!-- 10 Matchups Grid: 5 cols x 2 rows on desktop -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5" id="matchupGrid">
+                    <!-- Injected dynamically by JS -->
+                </div>
+            </div>
+
+            <!-- Step 2: Drama Presets or AI Generator -->
+            <div class="glass-panel p-6 rounded-2xl shadow-xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h2 class="text-base font-bold flex items-center gap-2 text-rose-400">
+                        <i class="fa-solid fa-scale-balanced"></i> 2. Kịch Bản Mẫu Sẵn Hoặc AI Viết Mới
+                    </h2>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">
+                            Kịch Bản Drama Thịnh Hành Theo Chủ Đề (10 Mẫu Có Sẵn)
+                        </label>
+                        <select id="presetSelect" onchange="loadPreset()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none transition text-white">
+                            <!-- Injected by JS -->
+                        </select>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-800">
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">
+                            Hoặc Nhập Đề Tài Mới / Dán Tin Tức Bằng Tiếng Việt (AI Viết Kịch Bản)
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="aiTopicInput" placeholder="Ví dụ: Bác sĩ Google, Nhân viên Gen Z từ chối OT, Trộm xe đạp trước đồn cảnh sát..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none text-white">
+                            <button onclick="generateWithAI(this)" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 font-bold text-sm hover:opacity-90 transition flex items-center gap-2 shadow-lg shadow-rose-500/20 text-white whitespace-nowrap">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Tạo Kịch Bản
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1.5">
+                            Có Gemini API Key, app viết và dịch kịch bản theo chủ đề. Khi không có key, app tải kịch bản mẫu. Nếu Gemini gặp lỗi, app sẽ hiện lý do.
+                        </p>
+                        <p id="aiModeNotice" role="status" class="hidden text-xs text-amber-300 mt-1.5"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Headers & Moral Lesson Card -->
+            <div class="glass-panel p-6 rounded-2xl shadow-xl space-y-4">
+                <h2 class="text-base font-bold flex items-center gap-2 text-emerald-400">
+                    <i class="fa-solid fa-stamp"></i> 3. Tiêu Đề Banner & Bài Học Răn Đe (教訓)
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tiêu đề thương hiệu (Header Top)</label>
+                        <input type="text" id="titleMainInput" value="サクッと笑える" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-dela text-amber-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tiêu đề vụ án / Cảnh báo giật gân</label>
+                        <input type="text" id="titleSubInput" value="【裁判】スシロー迷惑テロの末路" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-jp font-bold text-white">
+                    </div>
+                </div>
+
+                <!-- Moral Lesson Card -->
+                <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold uppercase text-amber-300 flex items-center gap-1.5">
+                            <span>📜</span> Bài học đạo đức răn đe (【本日の教訓】- Xuất hiện ở 2.5s cuối)
+                        </label>
+                        <span class="text-[11px] text-amber-400/80">Kèm Cú Đóng Dấu Đỏ 【有罪】 & Búa Phán Quyết</span>
+                    </div>
+
+                    <div class="space-y-1">
+                        <div class="text-[11px] text-amber-300/90 font-semibold">
+                            🇯🇵 Tiếng Nhật (Xuất hiện trên bảng vàng cuối video):
+                        </div>
+                        <textarea id="moralLessonInput" rows="2" class="w-full bg-slate-900/90 border border-amber-500/40 rounded-lg p-2.5 text-sm font-jp text-amber-100 focus:outline-none focus:ring-1 focus:ring-amber-400">ネットの10秒の目立ちたがり、代償は数千万円の借金地獄。</textarea>
+                    </div>
+
+                    <div class="space-y-1">
+                        <div class="text-[11px] text-sky-300/90 font-semibold">
+                            🇻🇳 Bản dịch tiếng Việt (Chỉ để kiểm duyệt nội dung, KHÔNG đưa vào video):
+                        </div>
+                        <textarea id="moralLessonViInput" rows="2" placeholder="Nghĩa tiếng Việt của bài học răn đe..." class="w-full bg-slate-950/80 border border-sky-500/30 rounded-lg p-2 text-xs text-sky-200 placeholder-slate-500 focus:outline-none focus:border-sky-400">10 giây thể hiện sống ảo trên mạng, cái giá phải trả là địa ngục nợ nần hàng chục triệu Yên.</textarea>
+                    </div>
+                </div>
+
+                <!-- Background & Audio Fine-Tuning -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Bối cảnh hậu trường</label>
+                        <select id="bgChoiceSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                            <option value="courtroom">⚖️ Tòa Án (Courtroom)</option>
+                            <option value="koban">👮‍♂️ Đồn Cảnh Sát (Koban Cờ Nhật)</option>
+                            <option value="hospital">🏥 Bệnh Viện (Phòng Khám 診察室)</option>
+                            <option value="office">💼 Văn Phòng Công Sở (Office)</option>
+                            <option value="classroom">🏫 Lớp Học (Classroom)</option>
+                            <option value="convenience_store">🏪 Cửa Hàng Tiện Lợi (Conbini)</option>
+                            <option value="interview_room">📑 Phòng Phỏng Vấn (Interview)</option>
+                            <option value="cafe">☕ Quán Cafe Hẹn Hò (Cafe)</option>
+                            <option value="apartment">🏢 Hành Lang Chung Cư (Apartment)</option>
+                            <option value="room_japan">🏠 Phòng Khách Nhật (Living Room)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Tốc độ giọng đọc</label>
+                        <select id="voiceRateSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                            <option value="+0%">Tự nhiên (+0%)</option>
+                            <option value="+6%" selected>Kịch tính chuẩn (+6%)</option>
+                            <option value="+12%">Nhanh dồn dập (+12%)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Âm lượng BGM</label>
+                        <select id="bgmVolSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                            <option value="0.12">Nhẹ (12%)</option>
+                            <option value="0.15" selected>Vừa vặn (15%)</option>
+                            <option value="0.20">Rõ nét (20%)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Interactive Dialogue Editor -->
+            <div class="glass-panel p-6 rounded-2xl shadow-xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold flex items-center gap-2 text-sky-400">
+                            <i class="fa-solid fa-comments"></i> 4. Kịch Bản Đối Thoại Từng Câu
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Mẹo: Đặt từ khóa trong dấu <code>「...」</code> để tự động đóng khung nổi bật</p>
+                    </div>
+                    <button onclick="addLine()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-sky-300 transition flex items-center gap-1.5 border border-slate-700">
+                        <i class="fa-solid fa-plus"></i> Thêm câu thoại
+                    </button>
+                </div>
+
+                <div id="dialogueList" class="space-y-3 custom-scrollbar max-h-[520px] overflow-y-auto pr-1">
+                    <!-- Injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Action Render Button -->
+            <button id="renderBtn" onclick="startRender()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 font-extrabold text-lg tracking-wide hover:opacity-95 shadow-xl shadow-rose-500/25 transition transform active:scale-[0.99] flex items-center justify-center gap-3 text-white">
+                <i class="fa-solid fa-play"></i> 🎬 XUẤT BẢN VIDEO SHORTS (1-CLICK)
+            </button>
+        </div>
+
+        <!-- Right: Realtime Preview & Output Video (5 cols) -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="glass-panel p-6 rounded-2xl shadow-xl sticky top-24">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-bold flex items-center gap-2 text-pink-400">
+                        <i class="fa-solid fa-mobile-screen"></i> Kết Quả Video (TikTok 9:16)
+                    </h2>
+                    <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold border border-slate-700">
+                        1080x1920
+                    </span>
+                </div>
+
+                <!-- Video Screen Phone Frame -->
+                <div class="relative w-full max-w-[340px] mx-auto aspect-[9/16] bg-slate-900 rounded-3xl overflow-hidden border-4 border-slate-800 shadow-2xl flex flex-col items-center justify-center">
+                    
+                    <!-- Loading / Progress State -->
+                    <div id="renderProgressContainer" class="hidden absolute inset-0 bg-slate-950/95 z-30 flex flex-col items-center justify-center p-6 text-center">
+                        <div class="w-16 h-16 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mb-4"></div>
+                        <p class="font-bold text-base text-white" id="progressStatus">Đang tổng hợp giọng Edge-TTS...</p>
+                        <p class="text-xs text-slate-400 mt-2">Đang kết xuất hoạt hình, mascot và con dấu 【有罪】...</p>
+                    </div>
+
+                    <!-- Video Element -->
+                    <video id="outputVideo" controls autoplay loop class="w-full h-full object-cover hidden"></video>
+
+                    <!-- Placeholder before render -->
+                    <div id="placeholderView" class="p-6 text-center space-y-4">
+                        <div class="w-20 h-20 rounded-3xl bg-slate-800/80 flex items-center justify-center mx-auto text-3xl shadow-inner border border-slate-700 text-amber-400">
+                            ⚖️
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-200">Sẵn sàng tạo Video Mới</p>
+                            <p class="text-xs text-slate-400 mt-1">Chọn 1 trong 10 cặp đối đầu bên trái, chỉnh sửa câu thoại và bấm "XUẤT BẢN VIDEO"!</p>
+                        </div>
+                        <div class="pt-2 border-t border-slate-800 flex justify-center gap-2 text-xs text-slate-500">
+                            <span>🐱 Mascot Mèo</span> • <span>🔨 Búa Gavel</span> • <span>🔴 Dấu 有罪</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topic Folder Info & Packaging -->
+                <div id="folderInfo" class="hidden mt-4 p-3 rounded-xl bg-slate-900/90 border border-emerald-500/30 text-xs text-slate-300 flex items-center justify-between">
+                    <div class="flex items-center gap-2 truncate pr-2">
+                        <span class="text-emerald-400 text-sm"><i class="fa-solid fa-folder-check"></i></span>
+                        <span class="truncate font-semibold text-emerald-300" id="folderPathText">output/【Chủ_đề】/</span>
+                    </div>
+                    <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold whitespace-nowrap border border-emerald-500/20">
+                        Đã Đóng Gói
+                    </span>
+                </div>
+
+                <!-- Sensational Caption Box -->
+                <div id="captionBox" class="hidden mt-4 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                            <span>🔥</span> Caption TikTok / Shorts (Giật gân, hút view):
+                        </label>
+                        <button onclick="copyCaption()" id="copyCaptionBtn" class="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition flex items-center gap-1.5">
+                            <i class="fa-regular fa-copy"></i> <span id="copyBtnText">Sao chép Caption</span>
+                        </button>
+                    </div>
+                    <textarea id="captionTextarea" rows="4" readonly class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-amber-400"></textarea>
+                </div>
+
+                <!-- Download Actions -->
+                <div id="downloadContainer" class="hidden mt-4 grid grid-cols-2 gap-2">
+                    <a id="downloadLink" href="#" download class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-sky-400 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-download"></i> Tải Video MP4
+                    </a>
+                    <a id="captionDownloadLink" href="#" download="caption.txt" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-amber-300 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-lines"></i> Tải Caption.txt
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500 mt-auto">
+        OMOSHIROI Shorts Studio • Hệ Thống Sản Xuất Video Châm Biếm & Tòa Án TikTok Số 1
+    </footer>
+
+    <!-- App State & Interactivity Scripts -->
+    <script>
+        let currentMatchupId = 'courtroom';
+        let currentDialogue = [];
+        let presets = [];
+        let matchups = [];
+        let characters = {};
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[char]);
+        }
+
+        async function init() {
+            updateKeyStatus();
+            try {
+                // 1. Fetch matchups
+                const resMatch = await fetch("/api/matchups");
+                const matchData = await resMatch.json();
+                matchups = matchData.matchups;
+                characters = matchData.characters;
+                renderMatchupGrid();
+
+                // 2. Fetch presets
+                const resPre = await fetch("/api/presets");
+                presets = await resPre.json();
+                
+                const select = document.getElementById("presetSelect");
+                select.innerHTML = presets.map((p, idx) => `
+                    <option value="${idx}">[${escapeHtml(p.topic_vi || p.topic)}] ${escapeHtml(p.title_sub)}</option>
+                `).join("");
+                
+                loadPreset();
+            } catch (err) {
+                console.error("Init error:", err);
+            }
+        }
+
+        async function updateKeyStatus() {
+            const key = localStorage.getItem('omoshiroi_gemini_key');
+            const keyText = document.getElementById("keyStatusText");
+            const keyInput = document.getElementById("geminiKeyInput");
+            
+            if (key && key.trim()) {
+                keyText.innerHTML = '<span class="text-emerald-400 font-semibold">Gemini Key ✓</span>';
+                if (keyInput) keyInput.value = key;
+                return;
+            }
+
+            try {
+                const res = await fetch("/api/config_status");
+                const data = await res.json();
+                if (data.has_env_key) {
+                    keyText.innerHTML = '<span class="text-emerald-400 font-semibold">Gemini Sẵn Sàng ✓</span>';
+                    return;
+                }
+            } catch (e) {}
+
+            keyText.innerText = "Cài API Key";
+        }
+
+        function toggleKeyModal() {
+            const modal = document.getElementById("keyModal");
+            modal.classList.toggle("hidden");
+        }
+
+        function saveApiKey() {
+            const val = document.getElementById("geminiKeyInput").value.trim();
+            if (val) {
+                localStorage.setItem('omoshiroi_gemini_key', val);
+                alert("Đã lưu key trong trình duyệt. Hãy bấm Tạo Kịch Bản để kiểm tra kết nối Gemini.");
+            } else {
+                localStorage.removeItem('omoshiroi_gemini_key');
+                alert("Đã xóa API Key, hệ thống sẽ dùng chế độ Offline thông minh.");
+            }
+            updateKeyStatus();
+            toggleKeyModal();
+        }
+
+        function clearApiKey() {
+            localStorage.removeItem('omoshiroi_gemini_key');
+            document.getElementById("geminiKeyInput").value = "";
+            updateKeyStatus();
+            toggleKeyModal();
+            alert("Đã xóa API Key!");
+        }
+
+        function toggleKeyVisibility() {
+            const input = document.getElementById("geminiKeyInput");
+            const icon = document.getElementById("eyeIcon");
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            } else {
+                input.type = "password";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
+        }
+
+        function copySavedApiKey() {
+            const key = localStorage.getItem('omoshiroi_gemini_key') || document.getElementById("geminiKeyInput").value.trim();
+            if (!key) {
+                alert("Chưa có API Key nào được lưu để sao chép!");
+                return;
+            }
+            navigator.clipboard.writeText(key).then(() => {
+                alert("Đã sao chép API Key vào bộ nhớ tạm! Bạn có thể dán (Ctrl+V) gửi cho em bạn rồi nhé.");
+            }).catch(err => {
+                prompt("Hãy nhấn phím Ctrl+C để sao chép mã Key:", key);
+            });
+        }
+
+        function renderMatchupGrid() {
+            const grid = document.getElementById("matchupGrid");
+            grid.innerHTML = matchups.map(m => {
+                const isSelected = m.id === currentMatchupId;
+                const charA = characters[m.speaker_a];
+                const charB = characters[m.speaker_b];
+                return `
+                    <button type="button" onclick="selectMatchup('${m.id}')" aria-pressed="${isSelected}" class="w-full cursor-pointer p-3 rounded-xl border transition flex flex-col items-center text-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300 ${
+                        isSelected 
+                            ? 'border-amber-500 bg-amber-500/15 shadow-lg shadow-amber-500/20 scale-[1.02]' 
+                            : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900/90'
+                    }">
+                        <div class="text-3xl">${escapeHtml(m.icon || m.title.split(' ')[0])}</div>
+                        <div class="font-bold text-xs text-white line-clamp-1">${escapeHtml(m.title_vi || m.title)}</div>
+                        <div class="text-[10px] text-amber-300/80 font-medium line-clamp-1">${escapeHtml(charA?.name_vi?.split(' ')[0] || m.speaker_a)} vs ${escapeHtml(charB?.name_vi?.split(' ')[0] || m.speaker_b)}</div>
+                    </button>
+                `;
+            }).join("");
+        }
+
+        function selectMatchup(id, autoLoadPreset = true) {
+            currentMatchupId = id;
+            renderMatchupGrid();
+            const m = matchups.find(x => x.id === id);
+            if (m) {
+                document.getElementById("currentMatchupDesc").innerText = m.desc_vi || m.desc;
+                document.getElementById("bgChoiceSelect").value = m.default_bg;
+            }
+
+            if (autoLoadPreset && presets.length > 0) {
+                const pIdx = presets.findIndex(p => p.matchup === id);
+                if (pIdx !== -1) {
+                    document.getElementById("presetSelect").value = pIdx;
+                    loadPreset(false);
+                }
+            }
+        }
+
+        function loadPreset(shouldSelectMatchup = true) {
+            const idx = document.getElementById("presetSelect").value;
+            const p = presets[idx];
+            if (!p) return;
+            
+            document.getElementById("titleMainInput").value = p.title_main;
+            document.getElementById("titleSubInput").value = p.title_sub;
+            document.getElementById("moralLessonInput").value = p.moral_lesson || "";
+            document.getElementById("moralLessonViInput").value = p.moral_lesson_vi || "";
+            
+            if (shouldSelectMatchup && p.matchup) {
+                selectMatchup(p.matchup, false);
+            }
+            
+            currentDialogue = JSON.parse(JSON.stringify(p.dialogue));
+            renderDialogueEditor();
+            document.getElementById("aiModeNotice").classList.add("hidden");
+        }
+
+        function renderDialogueEditor() {
+            const container = document.getElementById("dialogueList");
+            const m = matchups.find(x => x.id === currentMatchupId) || matchups[0];
+            const spk_a = characters[m.speaker_a] || characters['judge'];
+            const spk_b = characters[m.speaker_b] || characters['prisoner'];
+
+            container.innerHTML = currentDialogue.map((line, idx) => {
+                const isA = line.speaker === m.speaker_a;
+                const charConf = characters[line.speaker] || spk_a;
+                return `
+                    <div class="p-3.5 rounded-xl border ${isA ? 'border-amber-500/30 bg-amber-950/20' : 'border-purple-500/30 bg-purple-950/20'} space-y-2.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold ${isA ? 'text-amber-400' : 'text-purple-400'}">
+                                    ${escapeHtml(charConf.name_jp)} (${escapeHtml(charConf.name_vi)})
+                                </span>
+                                <select onchange="updateLine(${idx}, 'speaker', this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-[11px] text-white">
+                                    <option value="${escapeHtml(m.speaker_a)}" ${line.speaker === m.speaker_a ? 'selected' : ''}>${escapeHtml(spk_a.name_vi || spk_a.name_jp)}</option>
+                                    <option value="${escapeHtml(m.speaker_b)}" ${line.speaker === m.speaker_b ? 'selected' : ''}>${escapeHtml(spk_b.name_vi || spk_b.name_jp)}</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-400">Cảm xúc:</span>
+                                <select onchange="updateLine(${idx}, 'emotion', this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-[11px] text-white">
+                                    <option value="normal" ${line.emotion === 'normal' ? 'selected' : ''}>Bình thường</option>
+                                    <option value="sweat" ${line.emotion === 'sweat' ? 'selected' : ''}>Toát mồ hôi</option>
+                                    <option value="shocked" ${line.emotion === 'shocked' ? 'selected' : ''}>Sốc / Há hốc</option>
+                                    <option value="blush" ${line.emotion === 'blush' ? 'selected' : ''}>Ngượng ngùng</option>
+                                    <option value="angry" ${line.emotion === 'angry' ? 'selected' : ''}>Tức giận</option>
+                                </select>
+                                <button type="button" onclick="removeLine(${idx})" aria-label="Xóa dòng thoại ${idx + 1}" class="text-rose-400 hover:text-rose-300 ml-1 p-1 hover:bg-rose-500/10 rounded transition" title="Xóa dòng này">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 🇯🇵 Japanese Dialogue (burned to video & spoken by Edge-TTS) -->
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-amber-300/90 font-semibold flex items-center gap-1">
+                                    <span>🇯🇵</span> Thoại tiếng Nhật (Lồng tiếng & Subtitle trong video):
+                                </span>
+                                <span class="text-slate-500 text-[10px]">Tự động xuống dòng & căn giữa</span>
+                            </div>
+                            <input type="text" value="${escapeHtml(line.text)}" oninput="updateLine(${idx}, 'text', this.value)" 
+                                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-jp text-white focus:outline-none focus:border-amber-500">
+                        </div>
+
+                        <!-- 🇻🇳 Vietnamese Sub/Translation (preview & review only, NOT burned into video) -->
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-sky-300/90 font-semibold flex items-center gap-1">
+                                    <span>🇻🇳</span> Dịch nghĩa tiếng Việt (Chỉ để xem & chỉnh sửa kịch bản - KHÔNG xuất vào video):
+                                </span>
+                            </div>
+                            <input type="text" value="${escapeHtml(line.text_vi)}" oninput="updateLine(${idx}, 'text_vi', this.value)" 
+                                   placeholder="Bản dịch tiếng Việt để bạn kiểm duyệt nội dung..."
+                                   class="w-full bg-slate-950/80 border border-sky-500/30 rounded-lg px-3 py-1.5 text-xs text-sky-200 placeholder-slate-500 focus:outline-none focus:border-sky-400">
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function updateLine(idx, key, value) {
+            currentDialogue[idx][key] = value;
+            if (key === 'speaker') renderDialogueEditor();
+        }
+
+        function addLine() {
+            const m = matchups.find(x => x.id === currentMatchupId) || matchups[0];
+            const lastSpeaker = currentDialogue.length > 0 ? currentDialogue[currentDialogue.length - 1].speaker : m.speaker_b;
+            const nextSpeaker = lastSpeaker === m.speaker_a ? m.speaker_b : m.speaker_a;
+            currentDialogue.push({ 
+                speaker: nextSpeaker, 
+                text: 'セリフを入力してください', 
+                text_vi: 'Nhập câu thoại dịch tiếng Việt ở đây', 
+                emotion: 'normal' 
+            });
+            renderDialogueEditor();
+        }
+
+        function removeLine(idx) {
+            if (currentDialogue.length <= 2) {
+                alert("Cần tối thiểu 2 câu thoại để tạo video!");
+                return;
+            }
+            currentDialogue.splice(idx, 1);
+            renderDialogueEditor();
+        }
+
+        async function generateWithAI(btn) {
+            const topic = document.getElementById("aiTopicInput").value.trim();
+            if (!topic) {
+                alert("Vui lòng nhập chủ đề drama!");
+                return;
+            }
+            
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Đang viết kịch bản...';
+            btn.disabled = true;
+
+            const apiKey = localStorage.getItem('omoshiroi_gemini_key') || null;
+
+            try {
+                const res = await fetch("/api/generate_ai", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        topic: topic, 
+                        matchup_id: currentMatchupId,
+                        api_key: apiKey
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || !Array.isArray(data.dialogue)) {
+                    throw new Error(data.detail || 'Máy chủ không trả về kịch bản hợp lệ');
+                }
+                document.getElementById("titleMainInput").value = data.title_main || "サクッと笑える";
+                document.getElementById("titleSubInput").value = data.title_sub || topic;
+                document.getElementById("moralLessonInput").value = data.moral_lesson || "安易な欲望に流されず、正しい道を選んで生きよう。";
+                document.getElementById("moralLessonViInput").value = data.moral_lesson_vi || "Đừng để dục vọng nhất thời cuốn đi, hãy sống ngay thẳng và chân chính.";
+                
+                if (data.matchup) {
+                    selectMatchup(data.matchup, false);
+                }
+                
+                currentDialogue = data.dialogue;
+                renderDialogueEditor();
+                const notice = document.getElementById("aiModeNotice");
+                notice.classList.toggle("hidden", data.generation_mode === "gemini");
+                notice.classList.remove("text-rose-300");
+                notice.classList.add("text-amber-300");
+                notice.textContent = data.generation_mode === "preset"
+                    ? "Đã dùng kịch bản mẫu phù hợp với chủ đề."
+                    : "Đã tải kịch bản mẫu của cặp nhân vật. Chủ đề mới chưa được áp dụng; hãy thêm Gemini API Key để dùng chủ đề này.";
+            } catch (err) {
+                const notice = document.getElementById("aiModeNotice");
+                notice.textContent = err.message || "Không thể tạo kịch bản bằng Gemini.";
+                notice.classList.remove("hidden", "text-amber-300");
+                notice.classList.add("text-rose-300");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function startRender() {
+            const btn = document.getElementById("renderBtn");
+            const progress = document.getElementById("renderProgressContainer");
+            const progressStatus = document.getElementById("progressStatus");
+            const video = document.getElementById("outputVideo");
+            const placeholder = document.getElementById("placeholderView");
+            const downloadContainer = document.getElementById("downloadContainer");
+            const downloadLink = document.getElementById("downloadLink");
+
+            btn.disabled = true;
+            btn.classList.add("opacity-50");
+            progress.classList.remove("hidden");
+            progressStatus.innerText = "Đang tạo giọng đọc và dựng video; quá trình này có thể mất vài phút...";
+
+            const payload = {
+                matchup: currentMatchupId,
+                title_main: document.getElementById("titleMainInput").value,
+                title_sub: document.getElementById("titleSubInput").value,
+                moral_lesson: document.getElementById("moralLessonInput").value,
+                moral_lesson_vi: document.getElementById("moralLessonViInput").value,
+                bg_name: document.getElementById("bgChoiceSelect").value,
+                voice_rate: document.getElementById("voiceRateSelect").value,
+                bgm_vol: parseFloat(document.getElementById("bgmVolSelect").value),
+                dialogue: currentDialogue
+            };
+
+            try {
+                const res = await fetch("/api/render_video", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    placeholder.classList.add("hidden");
+                    video.classList.remove("hidden");
+                    video.src = data.video_url + "?t=" + new Date().getTime();
+                    video.play();
+
+                    // Show Folder Packaging
+                    document.getElementById("folderInfo").classList.remove("hidden");
+                    document.getElementById("folderPathText").innerText = data.folder_path;
+
+                    // Show Caption Box
+                    document.getElementById("captionBox").classList.remove("hidden");
+                    document.getElementById("captionTextarea").value = data.caption || "";
+
+                    // Download Links
+                    downloadContainer.classList.remove("hidden");
+                    downloadLink.href = data.video_url;
+                    document.getElementById("captionDownloadLink").href = data.caption_url || "#";
+                } else {
+                    alert("Lỗi render: " + data.error);
+                }
+            } catch (err) {
+                alert("Lỗi kết nối render: " + err);
+            } finally {
+                progress.classList.add("hidden");
+                btn.disabled = false;
+                btn.classList.remove("opacity-50");
+            }
+        }
+
+        function copyCaption() {
+            const textarea = document.getElementById("captionTextarea");
+            textarea.select();
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                const btnText = document.getElementById("copyBtnText");
+                const original = btnText.innerText;
+                btnText.innerText = "Đã chép! ✓";
+                setTimeout(() => { btnText.innerText = original; }, 2000);
+            }).catch(err => {
+                alert("Lỗi sao chép: " + err);
+            });
+        }
+
+        init();
+    </script>
+
+</body>
+</html>
