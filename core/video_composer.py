@@ -426,7 +426,7 @@ class VideoComposer:
                 else:
                     spk_b_emo = emo
                     b_bob = bob_val
-                    spk_a_emo = "angry" if emo in ["sweat", "shocked"] else "normal"
+                    spk_a_emo = "angry" if emo in ["sweat", "shocked", "regret"] else "normal"
 
             # Prepare frame composite
             frame = base_frame.copy()

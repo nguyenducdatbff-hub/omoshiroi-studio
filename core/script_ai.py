@@ -72,7 +72,7 @@ PRESET_SCRIPTS = [
                 "speaker": "prisoner",
                 "text": "そんなぁ〜！一生外食禁止ですかー！？",
                 "text_vi": "Trời đất ơi~! Chẳng lẽ cấm tôi đi ăn ngoài cả đời sao trời!?",
-                "emotion": "shocked"
+                "emotion": "regret"
             }
         ]
     },
@@ -122,7 +122,7 @@ PRESET_SCRIPTS = [
                 "speaker": "citizen_female",
                 "text": "すっぴん晒されるのは勘弁してください〜！！",
                 "text_vi": "Xin đừng bắt tôi để mặt mộc mà hu hu~!!",
-                "emotion": "shocked"
+                "emotion": "regret"
             }
         ]
     },
@@ -573,7 +573,7 @@ def generate_script_from_prompt(topic, matchup_id="courtroom", api_key=None):
             3. 強調したい重要キーワード（金額、年数、罪名、オチの言葉など）は必ず「」で囲んでください。（例: 「3日」、「10万円」、「オナラ」）。
             4. 最後は必ず子供たちへの教訓・大人が考えさせられる【風刺と道徳的メッセージ (moral_lesson)】を1文で締めてください。
             5. 各セリフ（text）と教訓（moral_lesson）には、制作者が内容を確認できるように必ず自然なベトナム語訳（text_vi, moral_lesson_vi）を添えてください。
-            6. emotion は [normal, sweat, shocked, blush, angry] から選んでください。
+            6. emotion は [normal, sweat, shocked, blush, angry, regret] から選んでください（特に被疑者や反省・後悔・泣きつくシーンでは "regret" を活用してください）。
             7. 入力テーマがベトナム語でも、title_sub・moral_lesson・各textは自然な日本語のみにしてください。ベトナム語は *_vi フィールドだけに入れてください。
             
             返却フォーマット (JSONのみ):

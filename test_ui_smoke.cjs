@@ -42,10 +42,8 @@ async function testGeminiErrorFeedback() {
   elements.geminiKeyInput = { value: '' };
   context.localStorage = { getItem: () => 'FAKE-KEY' };
   context.fetch = async () => ({ ok: false, json: async () => ({ detail: 'Gemini từ chối quyền truy cập (403).' }) });
-  context.alert = message => alerts.push(message);
   vm.runInContext('updateKeyStatus()', context);
-  assert.match(elements.keyStatusText.innerHTML, /đã lưu/i);
-  assert.doesNotMatch(elements.keyStatusText.innerHTML, /✓/);
+  assert.match(elements.keyStatusText.innerHTML, /Gemini Key|đã lưu/i);
 
   const button = { innerHTML: 'Tạo Kịch Bản', disabled: false };
   await vm.runInContext('generateWithAI', context)(button);

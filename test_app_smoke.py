@@ -166,5 +166,17 @@ class StudioSmokeTests(unittest.TestCase):
                         self.assertLessEqual(font.getlength("".join(tokens)), 900)
 
 
+    def test_regret_emotion_sprites_exist_and_load(self):
+        from core.video_composer import VideoComposer
+        from core.character_registry import CHARACTERS
+        
+        composer = VideoComposer(assets_dir="assets")
+        for char_id in CHARACTERS.keys():
+            sprite = composer.get_character_sprite(char_id, "regret")
+            self.assertIsNotNone(sprite)
+            self.assertGreater(sprite.width, 0)
+            self.assertGreater(sprite.height, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
