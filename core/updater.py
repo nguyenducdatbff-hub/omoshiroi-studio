@@ -12,6 +12,15 @@ import zipfile
 import subprocess
 from pathlib import Path
 
+# Đảm bảo in tiếng Việt mượt mà trên mọi máy tính Windows mà không bị lỗi mã ký tự Unicode
+try:
+    if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 GITHUB_REPO_ZIP = "https://github.com/nguyenducdatbff-hub/omoshiroi-studio/archive/refs/heads/main.zip"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
