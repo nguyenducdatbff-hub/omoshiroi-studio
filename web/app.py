@@ -5,9 +5,9 @@ import asyncio
 import shutil
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 # Add root directory to sys.path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -35,6 +35,14 @@ from core.script_ai import get_presets, generate_script_from_prompt, GeminiGener
 from core.tts_engine import build_dialogue_timeline, mix_master_audio
 from core.video_composer import VideoComposer
 from core.caption_generator import generate_viral_caption, sanitize_folder_name, resolve_output_file
+from core.script_evaluator import (
+    evaluate_script,
+    fingerprint_state,
+    EvaluatorValidationError,
+    EvaluatorConfigError,
+    EvaluatorTimeoutError,
+    EvaluatorUpstreamError,
+)
 
 
 app = FastAPI(title="OMOSHIROI - Satirical Parable Shorts Studio")
@@ -51,6 +59,17 @@ class DialogueLine(BaseModel):
     emotion: str = "normal"
     text_vi: Optional[str] = None
 
+class EvaluateScriptRequest(BaseModel):
+    platform: str = "tiktok"
+    content_profile: str = "irasutoya_short"
+    target_audience: str = "Người xem Việt Nam thích anime và hài châm biếm"
+    target_duration_seconds: int = 45
+    matchup: str = "courtroom"
+    title_main: str = "サクッと笑える"
+    title_sub: str = "【裁判】スシロー迷惑テロの末路"
+    moral_lesson: Optional[str] = "ネットの10秒の目立ちたがり、代償は数千万円の借金地獄。"
+    dialogue: List[DialogueLine]
+
 class RenderRequest(BaseModel):
     matchup: str = "courtroom"
     title_main: str = "サクッと笑える"
@@ -61,6 +80,7 @@ class RenderRequest(BaseModel):
     voice_rate: str = "+6%"
     bgm_vol: float = 0.15
     dialogue: List[DialogueLine]
+    evaluation: Optional[Dict[str, Any]] = None
 
 class AIGenerateRequest(BaseModel):
     topic: str
@@ -87,8 +107,42 @@ async def api_matchups():
 @app.get("/api/config_status")
 async def api_config_status():
     return {
-        "has_env_key": bool(os.environ.get("GEMINI_API_KEY"))
+        "has_env_key": bool(os.environ.get("GEMINI_API_KEY")),
+        "has_gemini_key": bool(os.environ.get("GEMINI_API_KEY")),
+        "has_typesafe_key": bool(os.environ.get("TYPESAFE_API_KEY")),
     }
+
+@app.post("/api/evaluate_script")
+async def api_evaluate_script(req: EvaluateScriptRequest):
+    try:
+        script_data = req.model_dump()
+        result = await evaluate_script(script_data)
+        return result
+    except EvaluatorValidationError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "error": {"code": e.code, "message": e.message}}
+        )
+    except EvaluatorConfigError as e:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "error", "error": {"code": e.code, "message": e.message}}
+        )
+    except EvaluatorTimeoutError as e:
+        return JSONResponse(
+            status_code=504,
+            content={"status": "error", "error": {"code": e.code, "message": e.message}}
+        )
+    except EvaluatorUpstreamError as e:
+        return JSONResponse(
+            status_code=502,
+            content={"status": "error", "error": {"code": e.code, "message": e.message}}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": {"code": "INTERNAL_ERROR", "message": "Lỗi nội bộ khi chấm điểm kịch bản."}}
+        )
 
 @app.post("/api/generate_ai")
 async def api_generate_ai(req: AIGenerateRequest):
@@ -174,11 +228,36 @@ async def api_render_video(req: RenderRequest):
         with open(caption_path, "w", encoding="utf-8") as f:
             f.write(caption_content)
             
+        # 5. Save evaluation.json if present (sanitized copy)
+        evaluation_file_saved = False
+        if req.evaluation and isinstance(req.evaluation, dict) and req.evaluation.get("viral_score") is not None:
+            import json
+            eval_path = os.path.join(topic_dir, "evaluation.json")
+            safe_eval = {k: v for k, v in req.evaluation.items() if not k.lower().endswith("key")}
+            eval_fp = safe_eval.get("input_fingerprint") or safe_eval.get("fingerprint")
+            current_fp = fingerprint_state({
+                "platform": safe_eval.get("platform", "tiktok"),
+                "content_profile": safe_eval.get("content_profile", "irasutoya_short"),
+                "target_audience": safe_eval.get("target_audience", "Người xem Việt Nam thích anime và hài châm biếm"),
+                "target_duration_seconds": safe_eval.get("target_duration_seconds", 45),
+                "matchup": req.matchup,
+                "title_main": req.title_main,
+                "title_sub": req.title_sub,
+                "moral_lesson": req.moral_lesson,
+                "dialogue": dialogue_dicts,
+            })
+            if eval_fp and eval_fp != current_fp:
+                safe_eval["stale"] = True
+            safe_eval["video_filename"] = out_filename
+            with open(eval_path, "w", encoding="utf-8") as f:
+                json.dump(safe_eval, f, ensure_ascii=False, indent=2)
+            evaluation_file_saved = True
+
         import urllib.parse
         encoded_folder = urllib.parse.quote(folder_name)
         encoded_file = urllib.parse.quote(out_filename)
         
-        return {
+        res_data = {
             "success": True,
             "folder_name": folder_name,
             "folder_path": f"output/{folder_name}/",
@@ -188,6 +267,10 @@ async def api_render_video(req: RenderRequest):
             "caption": caption_content,
             "duration": total_duration
         }
+        if evaluation_file_saved:
+            res_data["evaluation_url"] = f"/output/{encoded_folder}/evaluation.json"
+
+        return res_data
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -202,7 +285,12 @@ async def api_render_video(req: RenderRequest):
 async def get_output_file(file_path: str):
     full_path = resolve_output_file(OUT_DIR, file_path)
     if full_path:
-        media_type = "video/mp4" if full_path.suffix == ".mp4" else "text/plain; charset=utf-8"
+        if full_path.suffix == ".mp4":
+            media_type = "video/mp4"
+        elif full_path.suffix == ".json":
+            media_type = "application/json"
+        else:
+            media_type = "text/plain; charset=utf-8"
         return FileResponse(full_path, media_type=media_type)
     raise HTTPException(status_code=404, detail="File not found")
 

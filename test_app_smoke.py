@@ -177,6 +177,146 @@ class StudioSmokeTests(unittest.TestCase):
             self.assertGreater(sprite.width, 0)
             self.assertGreater(sprite.height, 0)
 
+    def test_config_status_reports_keys_safely_without_leaks(self):
+        from fastapi.testclient import TestClient
+        from web.app import app
+
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "secret-gemini", "TYPESAFE_API_KEY": "secret-typesafe"}):
+            res = TestClient(app).get("/api/config_status")
+            data = res.json()
+            self.assertEqual(res.status_code, 200)
+            self.assertTrue(data["has_env_key"])
+            self.assertTrue(data["has_gemini_key"])
+            self.assertTrue(data["has_typesafe_key"])
+            self.assertNotIn("secret-gemini", res.text)
+            self.assertNotIn("secret-typesafe", res.text)
+
+    def test_evaluate_script_endpoint_validation_and_config_errors(self):
+        from fastapi.testclient import TestClient
+        from web.app import app
+
+        client = TestClient(app)
+
+        # 1. Validation error: empty dialogue
+        res_empty = client.post("/api/evaluate_script", json={
+            "platform": "tiktok",
+            "title_sub": "Tiêu đề",
+            "dialogue": []
+        })
+        self.assertEqual(res_empty.status_code, 400)
+        self.assertEqual(res_empty.json()["error"]["code"], "INVALID_SCRIPT")
+
+        # 2. Config error: missing TYPESAFE_API_KEY
+        with patch.dict("os.environ", {"TYPESAFE_API_KEY": ""}):
+            res_no_key = client.post("/api/evaluate_script", json={
+                "platform": "tiktok",
+                "title_sub": "Vụ án xì dầu",
+                "dialogue": [{"speaker": "judge", "text": "こんにちは", "emotion": "normal"}]
+            })
+            self.assertEqual(res_no_key.status_code, 503)
+            self.assertEqual(res_no_key.json()["error"]["code"], "TYPESAFE_NOT_CONFIGURED")
+
+    def test_evaluate_script_endpoint_success_and_timeout(self):
+        from fastapi.testclient import TestClient
+        from web.app import app
+        from core.script_evaluator import EvaluatorTimeoutError
+
+        client = TestClient(app)
+
+        # Mock success evaluation
+        mock_eval = {
+            "status": "ok",
+            "model": "jev-latest",
+            "rubric_version": "viral-short-v1",
+            "viral_score": 85,
+            "classification": "recommended",
+            "overall_confidence": 0.90,
+            "dimensions": {
+                "hook_strength": {"score": 3.6, "normalized": 0.9, "confidence": 0.9, "uncertain": False},
+                "curiosity_emotion": {"score": 3.2, "normalized": 0.8, "confidence": 0.9, "uncertain": False},
+                "retention_payoff": {"score": 3.4, "normalized": 0.85, "confidence": 0.9, "uncertain": False},
+                "share_comment": {"score": 3.5, "normalized": 0.875, "confidence": 0.9, "uncertain": False},
+            },
+            "weakest_dimension": "curiosity_emotion",
+            "recommendations": [],
+            "warnings": [],
+            "evaluated_at": "2026-09-23T12:00:00Z",
+            "input_fingerprint": "sha256:dummyhash"
+        }
+
+        with patch("web.app.evaluate_script", return_value=mock_eval):
+            res = client.post("/api/evaluate_script", json={
+                "platform": "tiktok",
+                "content_profile": "irasutoya_short",
+                "target_audience": "Người xem anime",
+                "title_sub": "Vụ án xì dầu",
+                "dialogue": [{"speaker": "judge", "text": "こんにちは", "emotion": "normal"}]
+            })
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data["viral_score"], 85)
+            self.assertEqual(data["classification"], "recommended")
+
+        # Mock timeout
+        with patch("web.app.evaluate_script", side_effect=EvaluatorTimeoutError()):
+            res_to = client.post("/api/evaluate_script", json={
+                "platform": "tiktok",
+                "title_sub": "Vụ án xì dầu",
+                "dialogue": [{"speaker": "judge", "text": "こんにちは", "emotion": "normal"}]
+            })
+            self.assertEqual(res_to.status_code, 504)
+            self.assertEqual(res_to.json()["error"]["code"], "TYPESAFE_TIMEOUT")
+
+    def test_render_video_persists_sanitized_evaluation_json(self):
+        import json
+        from fastapi.testclient import TestClient
+        from web.app import app
+
+        client = TestClient(app)
+
+        eval_payload = {
+            "rubric_version": "viral-short-v1",
+            "model": "jev-latest",
+            "viral_score": 78,
+            "classification": "recommended",
+            "dimensions": {},
+            "recommendations": [],
+            "evaluated_at": "2026-09-23T12:00:00Z",
+            "input_fingerprint": "sha256:somehash",
+            "secret_api_key": "MUST_BE_STRIPPED"
+        }
+
+        render_req = {
+            "matchup": "courtroom",
+            "title_main": "サクッと笑える",
+            "title_sub": "【裁判】スシロー迷惑テロの末路",
+            "moral_lesson": "ネットの10秒の目立ちたがり、代償は数千万円の借金地獄。",
+            "dialogue": [{"speaker": "judge", "text": "こんにちは", "emotion": "normal"}],
+            "evaluation": eval_payload
+        }
+
+        with patch("web.app.build_dialogue_timeline", return_value=([], 5.0)), \
+             patch("web.app.mix_master_audio", return_value=None), \
+             patch("web.app.VideoComposer.render_video", return_value=None):
+            
+            res = client.post("/api/render_video", json=render_req)
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertTrue(data["success"])
+            self.assertIn("evaluation_url", data)
+
+            # Test evaluation.json is accessible and media_type is application/json
+            eval_url = data["evaluation_url"]
+            eval_res = client.get(eval_url)
+            self.assertEqual(eval_res.status_code, 200)
+            self.assertEqual(eval_res.headers["content-type"], "application/json")
+            
+            saved_eval = eval_res.json()
+            self.assertEqual(saved_eval["viral_score"], 78)
+            self.assertNotIn("secret_api_key", saved_eval)
+            self.assertIn("video_filename", saved_eval)
+            self.assertTrue(saved_eval["stale"])  # Fingerprint differed from actual script
+
 
 if __name__ == "__main__":
     unittest.main()

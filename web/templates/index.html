@@ -189,11 +189,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tiêu đề thương hiệu (Header Top)</label>
-                        <input type="text" id="titleMainInput" value="サクッと笑える" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-dela text-amber-300">
+                        <input type="text" id="titleMainInput" oninput="markEvaluationStale()" value="サクッと笑える" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-dela text-amber-300">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tiêu đề vụ án / Cảnh báo giật gân</label>
-                        <input type="text" id="titleSubInput" value="【裁判】スシロー迷惑テロの末路" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-jp font-bold text-white">
+                        <input type="text" id="titleSubInput" oninput="markEvaluationStale()" value="【裁判】スシロー迷惑テロの末路" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-jp font-bold text-white">
                     </div>
                 </div>
 
@@ -210,14 +210,14 @@
                         <div class="text-[11px] text-amber-300/90 font-semibold">
                             🇯🇵 Tiếng Nhật (Xuất hiện trên bảng vàng cuối video):
                         </div>
-                        <textarea id="moralLessonInput" rows="2" class="w-full bg-slate-900/90 border border-amber-500/40 rounded-lg p-2.5 text-sm font-jp text-amber-100 focus:outline-none focus:ring-1 focus:ring-amber-400">ネットの10秒の目立ちたがり、代償は数千万円の借金地獄。</textarea>
+                        <textarea id="moralLessonInput" oninput="markEvaluationStale()" rows="2" class="w-full bg-slate-900/90 border border-amber-500/40 rounded-lg p-2.5 text-sm font-jp text-amber-100 focus:outline-none focus:ring-1 focus:ring-amber-400">ネットの10秒の目立ちたがり、代償は数千万円の借金地獄。</textarea>
                     </div>
 
                     <div class="space-y-1">
                         <div class="text-[11px] text-sky-300/90 font-semibold">
                             🇻🇳 Bản dịch tiếng Việt (Chỉ để kiểm duyệt nội dung, KHÔNG đưa vào video):
                         </div>
-                        <textarea id="moralLessonViInput" rows="2" placeholder="Nghĩa tiếng Việt của bài học răn đe..." class="w-full bg-slate-950/80 border border-sky-500/30 rounded-lg p-2 text-xs text-sky-200 placeholder-slate-500 focus:outline-none focus:border-sky-400">10 giây thể hiện sống ảo trên mạng, cái giá phải trả là địa ngục nợ nần hàng chục triệu Yên.</textarea>
+                        <textarea id="moralLessonViInput" oninput="markEvaluationStale()" rows="2" placeholder="Nghĩa tiếng Việt của bài học răn đe..." class="w-full bg-slate-950/80 border border-sky-500/30 rounded-lg p-2 text-xs text-sky-200 placeholder-slate-500 focus:outline-none focus:border-sky-400">10 giây thể hiện sống ảo trên mạng, cái giá phải trả là địa ngục nợ nần hàng chục triệu Yên.</textarea>
                     </div>
                 </div>
 
@@ -273,6 +273,106 @@
 
                 <div id="dialogueList" class="space-y-3 custom-scrollbar max-h-[520px] overflow-y-auto pr-1">
                     <!-- Injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Step 5: Jev / TypeSafe Script Evaluator Scorecard -->
+            <div class="glass-panel p-6 rounded-2xl shadow-xl space-y-4" id="evaluatorPanel">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div>
+                        <h2 class="text-base font-bold flex items-center gap-2 text-amber-400">
+                            <i class="fa-solid fa-bullseye"></i> 5. Đánh Giá Kịch Bản Với Jev (AI Viral Judge)
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Chấm điểm tiềm năng viral theo rubric 4 tiêu chí chuẩn trước khi render (Evaluate-only)</p>
+                    </div>
+                    <span id="evalStatusBadge" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 font-semibold">
+                        Chưa chấm điểm
+                    </span>
+                </div>
+
+                <!-- Profile & Audience Controls -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Thể loại kịch bản (Content Profile)</label>
+                        <select id="contentProfileSelect" onchange="markEvaluationStale()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+                            <option value="irasutoya_short" selected>Irasutoya Short (Mặc định)</option>
+                            <option value="anime_recap_edit">Anime Recap / Edit</option>
+                            <option value="asian_myth_3d">Thần Thoại 3D Châu Á</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Khán giả mục tiêu (Target Audience)</label>
+                        <input type="text" id="targetAudienceInput" oninput="markEvaluationStale()" value="Người xem Việt Nam thích anime và hài châm biếm" placeholder="Khán giả mục tiêu..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+                    </div>
+                </div>
+
+                <!-- Evaluate Action Button -->
+                <button type="button" id="evaluateBtn" onclick="evaluateScript(this)" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/40 hover:border-amber-400 text-amber-300 font-bold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 active:scale-[0.99]">
+                    <i class="fa-solid fa-chart-line"></i> 🎯 Đánh Giá Kịch Bản Với Jev
+                </button>
+
+                <!-- Error Notice Box (Fail-open notice included) -->
+                <div id="evalErrorBox" class="hidden p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 flex items-start gap-2.5">
+                    <span class="text-rose-400 text-sm mt-0.5"><i class="fa-solid fa-circle-exclamation"></i></span>
+                    <div class="flex-1">
+                        <div class="font-bold" id="evalErrorTitle">Lỗi chấm điểm</div>
+                        <div class="text-[11px] text-rose-300/90 mt-0.5" id="evalErrorMessage">Không thể chấm điểm lúc này. Bạn vẫn có thể xuất video bình thường!</div>
+                    </div>
+                </div>
+
+                <!-- Stale Banner (When script modified after eval) -->
+                <div id="evalStaleBanner" class="hidden p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs text-amber-200 flex items-center gap-2.5">
+                    <span class="text-amber-400 text-base"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    <div class="flex-1">
+                        <span class="font-semibold">⚠️ Kịch bản đã thay đổi</span> — Kết quả đánh giá bên dưới đã cũ. Bấm <b>"Đánh Giá Kịch Bản Với Jev"</b> để cập nhật.
+                    </div>
+                </div>
+
+                <!-- Scorecard Result Card (Hidden until first eval) -->
+                <div id="scorecardContainer" class="hidden space-y-4">
+                    <!-- Top Summary Card: Viral Score + Classification + Confidence -->
+                    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div id="scoreBadgeCircle" class="w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex flex-col items-center justify-center shadow-lg shrink-0">
+                                <span id="viralScoreNum" class="text-2xl font-black text-amber-300">--</span>
+                                <span class="text-[9px] font-bold text-slate-400 -mt-1">/ 100</span>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span id="classificationTag" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                        Đang tải...
+                                    </span>
+                                    <span class="text-[10px] text-slate-400 font-mono" id="evalModelTag">jev-latest</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1" id="classificationDesc">Mô tả phân loại</p>
+                            </div>
+                        </div>
+                        <div class="text-right sm:border-l sm:border-slate-800 sm:pl-4 text-xs text-slate-400 space-y-1 w-full sm:w-auto">
+                            <div class="flex sm:justify-end items-center gap-1.5 justify-between">
+                                <span>Độ tin cậy:</span>
+                                <span id="overallConfidenceText" class="font-bold text-slate-200">--%</span>
+                            </div>
+                            <div class="flex sm:justify-end items-center gap-1.5 justify-between">
+                                <span>Đánh giá lúc:</span>
+                                <span id="evaluatedAtText" class="text-[11px] text-slate-400">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4 Dimensions Progress Bars -->
+                    <div class="space-y-3 p-4 rounded-xl bg-slate-900/60 border border-slate-800" id="dimensionsContainer">
+                        <!-- Injected by JS -->
+                    </div>
+
+                    <!-- Recommendations List -->
+                    <div id="recommendationsContainer" class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-lightbulb"></i> Đề Xuất Cải Thiện Kịch Bản:
+                        </h4>
+                        <div id="recommendationsList" class="space-y-2">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -347,12 +447,15 @@
                 </div>
 
                 <!-- Download Actions -->
-                <div id="downloadContainer" class="hidden mt-4 grid grid-cols-2 gap-2">
+                <div id="downloadContainer" class="hidden mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
                     <a id="downloadLink" href="#" download class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-sky-400 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-download"></i> Tải Video MP4
                     </a>
                     <a id="captionDownloadLink" href="#" download="caption.txt" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-amber-300 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-file-lines"></i> Tải Caption.txt
+                    </a>
+                    <a id="evaluationDownloadLink" href="#" download="evaluation.json" class="hidden py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-emerald-400 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-code"></i> Tải Scorecard
                     </a>
                 </div>
             </div>
@@ -371,6 +474,8 @@
         let presets = [];
         let matchups = [];
         let characters = {};
+        let latestEvaluation = null;
+        let lastEvaluatedFingerprint = null;
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -504,28 +609,37 @@
             renderMatchupGrid();
             const m = matchups.find(x => x.id === id);
             if (m) {
-                document.getElementById("currentMatchupDesc").innerText = m.desc_vi || m.desc;
-                document.getElementById("bgChoiceSelect").value = m.default_bg;
+                const desc = document.getElementById("currentMatchupDesc");
+                if (desc) desc.innerText = m.desc_vi || m.desc;
+                const bg = document.getElementById("bgChoiceSelect");
+                if (bg) bg.value = m.default_bg;
             }
 
             if (autoLoadPreset && presets.length > 0) {
                 const pIdx = presets.findIndex(p => p.matchup === id);
                 if (pIdx !== -1) {
-                    document.getElementById("presetSelect").value = pIdx;
+                    const sel = document.getElementById("presetSelect");
+                    if (sel) sel.value = pIdx;
                     loadPreset(false);
                 }
             }
+            markEvaluationStale();
         }
 
         function loadPreset(shouldSelectMatchup = true) {
-            const idx = document.getElementById("presetSelect").value;
+            const sel = document.getElementById("presetSelect");
+            const idx = sel ? sel.value : 0;
             const p = presets[idx];
             if (!p) return;
             
-            document.getElementById("titleMainInput").value = p.title_main;
-            document.getElementById("titleSubInput").value = p.title_sub;
-            document.getElementById("moralLessonInput").value = p.moral_lesson || "";
-            document.getElementById("moralLessonViInput").value = p.moral_lesson_vi || "";
+            const tMain = document.getElementById("titleMainInput");
+            if (tMain) tMain.value = p.title_main;
+            const tSub = document.getElementById("titleSubInput");
+            if (tSub) tSub.value = p.title_sub;
+            const mLes = document.getElementById("moralLessonInput");
+            if (mLes) mLes.value = p.moral_lesson || "";
+            const mLesVi = document.getElementById("moralLessonViInput");
+            if (mLesVi) mLesVi.value = p.moral_lesson_vi || "";
             
             if (shouldSelectMatchup && p.matchup) {
                 selectMatchup(p.matchup, false);
@@ -533,18 +647,20 @@
             
             currentDialogue = JSON.parse(JSON.stringify(p.dialogue));
             renderDialogueEditor();
-            document.getElementById("aiModeNotice").classList.add("hidden");
+            const aiNotice = document.getElementById("aiModeNotice");
+            if (aiNotice) aiNotice.classList.add("hidden");
+            markEvaluationStale();
         }
 
         function renderDialogueEditor() {
             const container = document.getElementById("dialogueList");
-            const m = matchups.find(x => x.id === currentMatchupId) || matchups[0];
-            const spk_a = characters[m.speaker_a] || characters['judge'];
-            const spk_b = characters[m.speaker_b] || characters['prisoner'];
+            const m = matchups.find(x => x.id === currentMatchupId) || matchups[0] || { speaker_a: 'judge', speaker_b: 'prisoner' };
+            const spk_a = (characters && characters[m.speaker_a]) || (characters && characters['judge']) || { name_jp: '裁判官', name_vi: 'Thẩm phán' };
+            const spk_b = (characters && characters[m.speaker_b]) || (characters && characters['prisoner']) || { name_jp: '被告', name_vi: 'Bị cáo' };
 
             container.innerHTML = currentDialogue.map((line, idx) => {
                 const isA = line.speaker === m.speaker_a;
-                const charConf = characters[line.speaker] || spk_a;
+                const charConf = (characters && characters[line.speaker]) || spk_a;
                 return `
                     <div class="p-3.5 rounded-xl border ${isA ? 'border-amber-500/30 bg-amber-950/20' : 'border-purple-500/30 bg-purple-950/20'} space-y-2.5">
                         <div class="flex items-center justify-between text-xs">
@@ -602,12 +718,15 @@
         }
 
         function updateLine(idx, key, value) {
-            currentDialogue[idx][key] = value;
-            if (key === 'speaker') renderDialogueEditor();
+            if (currentDialogue[idx]) {
+                currentDialogue[idx][key] = value;
+                if (key === 'speaker') renderDialogueEditor();
+                markEvaluationStale();
+            }
         }
 
         function addLine() {
-            const m = matchups.find(x => x.id === currentMatchupId) || matchups[0];
+            const m = matchups.find(x => x.id === currentMatchupId) || matchups[0] || { speaker_a: 'judge', speaker_b: 'prisoner' };
             const lastSpeaker = currentDialogue.length > 0 ? currentDialogue[currentDialogue.length - 1].speaker : m.speaker_b;
             const nextSpeaker = lastSpeaker === m.speaker_a ? m.speaker_b : m.speaker_a;
             currentDialogue.push({ 
@@ -617,6 +736,7 @@
                 emotion: 'normal' 
             });
             renderDialogueEditor();
+            markEvaluationStale();
         }
 
         function removeLine(idx) {
@@ -626,6 +746,7 @@
             }
             currentDialogue.splice(idx, 1);
             renderDialogueEditor();
+            markEvaluationStale();
         }
 
         async function generateWithAI(btn) {
@@ -673,6 +794,7 @@
                 notice.textContent = data.generation_mode === "preset"
                     ? "Đã dùng kịch bản mẫu phù hợp với chủ đề."
                     : "Đã tải kịch bản mẫu của cặp nhân vật. Chủ đề mới chưa được áp dụng; hãy thêm Gemini API Key để dùng chủ đề này.";
+                markEvaluationStale();
             } catch (err) {
                 const notice = document.getElementById("aiModeNotice");
                 notice.textContent = err.message || "Không thể tạo kịch bản bằng Gemini.";
@@ -681,6 +803,265 @@
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
+            }
+        }
+
+        function markEvaluationStale() {
+            if (latestEvaluation) {
+                latestEvaluation.stale = true;
+                const banner = document.getElementById("evalStaleBanner");
+                if (banner) banner.classList.remove("hidden");
+                const scorecard = document.getElementById("scorecardContainer");
+                if (scorecard) scorecard.classList.add("opacity-60");
+                const badge = document.getElementById("evalStatusBadge");
+                if (badge) {
+                    badge.className = "text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold";
+                    badge.innerText = "Cần chấm lại ⚠️";
+                }
+            }
+        }
+
+        async function evaluateScript(btn) {
+            if (!currentDialogue || currentDialogue.length === 0) {
+                alert("Kịch bản phải có ít nhất 1 câu thoại để chấm điểm!");
+                return;
+            }
+
+            const titleSubInput = document.getElementById("titleSubInput");
+            const titleSub = titleSubInput ? titleSubInput.value.trim() : "";
+            if (!titleSub) {
+                alert("Vui lòng nhập tiêu đề kịch bản (title_sub) trước khi chấm điểm!");
+                return;
+            }
+
+            const errorBox = document.getElementById("evalErrorBox");
+            const errorTitle = document.getElementById("evalErrorTitle");
+            const errorMsg = document.getElementById("evalErrorMessage");
+            const staleBanner = document.getElementById("evalStaleBanner");
+            const statusBadge = document.getElementById("evalStatusBadge");
+
+            if (errorBox) errorBox.classList.add("hidden");
+            if (staleBanner) staleBanner.classList.add("hidden");
+
+            const originalHtml = btn ? btn.innerHTML : "";
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Đang chấm điểm với Jev...';
+                btn.disabled = true;
+            }
+
+            const profileEl = document.getElementById("contentProfileSelect");
+            const profile = profileEl ? profileEl.value : "irasutoya_short";
+            const audienceEl = document.getElementById("targetAudienceInput");
+            const audience = (audienceEl && audienceEl.value.trim()) ? audienceEl.value.trim() : "Người xem Việt Nam thích anime và hài châm biếm";
+            const titleMainEl = document.getElementById("titleMainInput");
+            const titleMain = titleMainEl ? titleMainEl.value : "サクッと笑える";
+            const moralEl = document.getElementById("moralLessonInput");
+            const moralLesson = moralEl ? moralEl.value : "";
+
+            const payload = {
+                platform: "tiktok",
+                content_profile: profile,
+                target_audience: audience,
+                target_duration_seconds: 45,
+                matchup: currentMatchupId,
+                title_main: titleMain,
+                title_sub: titleSub,
+                moral_lesson: moralLesson,
+                dialogue: currentDialogue
+            };
+
+            try {
+                const res = await fetch("/api/evaluate_script", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || data.status === "error") {
+                    const code = data.error?.code || (res.status === 503 ? "TYPESAFE_NOT_CONFIGURED" : res.status === 504 ? "TYPESAFE_TIMEOUT" : "TYPESAFE_UPSTREAM_ERROR");
+                    const message = data.error?.message || data.detail?.message || data.detail || "Không thể chấm điểm lúc này.";
+
+                    if (errorBox) {
+                        errorBox.classList.remove("hidden");
+                        if (code === "TYPESAFE_NOT_CONFIGURED" || res.status === 503) {
+                            if (errorTitle) errorTitle.innerText = "Chưa cấu hình API Key (503)";
+                            if (errorMsg) errorMsg.innerHTML = "Chưa cấu hình <code>TYPESAFE_API_KEY</code> trong file <code>.env</code> trên máy chủ. Bạn vẫn có thể xuất video bình thường!";
+                        } else if (code === "TYPESAFE_TIMEOUT" || res.status === 504) {
+                            if (errorTitle) errorTitle.innerText = "Quá thời gian chờ (504)";
+                            if (errorMsg) errorMsg.innerText = "Không thể chấm điểm lúc này do quá thời gian chờ (15s). Bạn vẫn có thể xuất video bình thường!";
+                        } else if (code === "INVALID_SCRIPT" || res.status === 400) {
+                            if (errorTitle) errorTitle.innerText = "Kịch bản không hợp lệ (400)";
+                            if (errorMsg) errorMsg.innerText = message;
+                        } else {
+                            if (errorTitle) errorTitle.innerText = `Lỗi chấm điểm (${code})`;
+                            if (errorMsg) errorMsg.innerText = `${message} — Bạn vẫn có thể xuất video bình thường!`;
+                        }
+                    }
+                    if (statusBadge) {
+                        statusBadge.className = "text-[11px] px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-300 border border-rose-500/30 font-semibold";
+                        statusBadge.innerText = "Lỗi chấm điểm";
+                    }
+                    return;
+                }
+
+                latestEvaluation = data;
+                lastEvaluatedFingerprint = data.input_fingerprint;
+                renderScorecard(data);
+
+                if (statusBadge) {
+                    statusBadge.className = "text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-semibold";
+                    statusBadge.innerText = `Đã chấm: ${data.viral_score}/100`;
+                }
+            } catch (err) {
+                if (errorBox) {
+                    errorBox.classList.remove("hidden");
+                    if (errorTitle) errorTitle.innerText = "Lỗi kết nối máy chủ";
+                    if (errorMsg) errorMsg.innerText = "Không thể kết nối với dịch vụ đánh giá. Bạn vẫn có thể xuất video bình thường!";
+                }
+                if (statusBadge) {
+                    statusBadge.className = "text-[11px] px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-300 border border-rose-500/30 font-semibold";
+                    statusBadge.innerText = "Lỗi mạng";
+                }
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        function renderScorecard(data) {
+            const container = document.getElementById("scorecardContainer");
+            if (!container) return;
+            container.classList.remove("hidden", "opacity-60");
+
+            const staleBanner = document.getElementById("evalStaleBanner");
+            if (staleBanner) staleBanner.classList.add("hidden");
+
+            const scoreNum = document.getElementById("viralScoreNum");
+            const scoreCircle = document.getElementById("scoreBadgeCircle");
+            const classTag = document.getElementById("classificationTag");
+            const classDesc = document.getElementById("classificationDesc");
+            const modelTag = document.getElementById("evalModelTag");
+            const confText = document.getElementById("overallConfidenceText");
+            const dateText = document.getElementById("evaluatedAtText");
+
+            if (scoreNum) scoreNum.innerText = data.viral_score;
+            if (modelTag) modelTag.innerText = data.model || "jev-latest";
+            if (confText) confText.innerText = Math.round((data.overall_confidence || 0) * 100) + "%";
+
+            if (dateText) {
+                try {
+                    const d = new Date(data.evaluated_at);
+                    dateText.innerText = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                } catch (e) {
+                    dateText.innerText = "Vừa xong";
+                }
+            }
+
+            if (data.classification === "recommended") {
+                if (scoreCircle) scoreCircle.className = "w-16 h-16 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 flex flex-col items-center justify-center shadow-lg shrink-0";
+                if (scoreNum) scoreNum.className = "text-2xl font-black text-emerald-300";
+                if (classTag) {
+                    classTag.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                    classTag.innerText = "🔥 Đạt Chuẩn Viral (Recommended)";
+                }
+                if (classDesc) classDesc.innerText = "Kịch bản cuốn hút, nhịp độ tốt, sẵn sàng xuất bản video triệu view!";
+            } else if (data.classification === "revise") {
+                if (scoreCircle) scoreCircle.className = "w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex flex-col items-center justify-center shadow-lg shrink-0";
+                if (scoreNum) scoreNum.className = "text-2xl font-black text-amber-300";
+                if (classTag) {
+                    classTag.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30";
+                    classTag.innerText = "⚠️ Cần Tinh Chỉnh (Revise)";
+                }
+                if (classDesc) classDesc.innerText = "Kịch bản ổn nhưng nên cải thiện điểm yếu nhất bên dưới để tối ưu tương tác.";
+            } else {
+                if (scoreCircle) scoreCircle.className = "w-16 h-16 rounded-2xl bg-rose-500/20 border-2 border-rose-400 flex flex-col items-center justify-center shadow-lg shrink-0";
+                if (scoreNum) scoreNum.className = "text-2xl font-black text-rose-300";
+                if (classTag) {
+                    classTag.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30";
+                    classTag.innerText = "🛑 Cần Sửa Nhiều (Major Revision)";
+                }
+                if (classDesc) classDesc.innerText = "Hook mở đầu hoặc payoff chưa đủ mạnh, khuyên nên sửa trước khi render.";
+            }
+
+            const dimContainer = document.getElementById("dimensionsContainer");
+            if (dimContainer) {
+                const dimNames = {
+                    "hook_strength": { name: "1. Hook / Chặn lướt", weight: "30%" },
+                    "curiosity_emotion": { name: "2. Tò mò & Cảm xúc", weight: "25%" },
+                    "retention_payoff": { name: "3. Giữ chân & Payoff", weight: "25%" },
+                    "share_comment": { name: "4. Chia sẻ & Bình luận", weight: "20%" }
+                };
+
+                let dimHtml = "";
+                for (const [key, meta] of Object.entries(dimNames)) {
+                    const dim = data.dimensions?.[key] || { score: 0, confidence: 1, uncertain: false };
+                    const score = typeof dim.score === "number" ? dim.score : 0;
+                    const pct = Math.min(100, Math.max(0, Math.round((score / 4.0) * 100)));
+                    const confPct = Math.round((dim.confidence || 0) * 100);
+
+                    let barColor = "from-rose-500 to-amber-500";
+                    let scoreColor = "text-amber-300";
+                    if (score >= 3.0) {
+                        barColor = "from-emerald-500 to-teal-400";
+                        scoreColor = "text-emerald-300";
+                    } else if (score < 2.0) {
+                        barColor = "from-rose-600 to-rose-400";
+                        scoreColor = "text-rose-300";
+                    }
+
+                    dimHtml += `
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="font-semibold text-slate-300 flex items-center gap-1.5">
+                                    ${escapeHtml(meta.name)} <span class="text-[10px] text-slate-500">(${meta.weight})</span>
+                                    ${dim.uncertain ? '<span class="text-amber-400 text-[10px] px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/30" title="Độ tin cậy thấp (< 45%)">⚠️ Chưa chắc chắn</span>' : ''}
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] text-slate-500">Tin cậy: ${confPct}%</span>
+                                    <span class="font-bold ${scoreColor} text-xs">${score.toFixed(1)} / 4.0</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full rounded-full bg-gradient-to-r ${barColor} transition-all duration-500" style="width: ${pct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+                dimContainer.innerHTML = dimHtml;
+            }
+
+            const recList = document.getElementById("recommendationsList");
+            if (recList) {
+                const dimShortNames = {
+                    "hook_strength": "Hook / Chặn lướt",
+                    "curiosity_emotion": "Tò mò & Cảm xúc",
+                    "retention_payoff": "Giữ chân & Payoff",
+                    "share_comment": "Chia sẻ & Bình luận"
+                };
+                if (data.recommendations && data.recommendations.length > 0) {
+                    recList.innerHTML = data.recommendations.map(r => `
+                        <div class="p-2.5 rounded-lg bg-slate-950/70 border border-amber-500/20 text-xs flex items-start gap-2.5">
+                            <span class="text-amber-400 text-sm mt-0.5"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-amber-300 font-mono text-[10px] uppercase">${escapeHtml(r.code || 'TIP')}</span>
+                                    <span class="text-[10px] text-slate-500">(${escapeHtml(dimShortNames[r.dimension] || r.dimension)})</span>
+                                </div>
+                                <p class="text-slate-300 text-xs mt-0.5 leading-relaxed">${escapeHtml(r.message)}</p>
+                            </div>
+                        </div>
+                    `).join("");
+                } else {
+                    recList.innerHTML = `
+                        <div class="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-emerald-400"></i> Kịch bản rất cân bằng! Không có điểm yếu lớn cần khắc phục.
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -707,7 +1088,8 @@
                 bg_name: document.getElementById("bgChoiceSelect").value,
                 voice_rate: document.getElementById("voiceRateSelect").value,
                 bgm_vol: parseFloat(document.getElementById("bgmVolSelect").value),
-                dialogue: currentDialogue
+                dialogue: currentDialogue,
+                evaluation: latestEvaluation
             };
 
             try {
@@ -735,6 +1117,17 @@
                     downloadContainer.classList.remove("hidden");
                     downloadLink.href = data.video_url;
                     document.getElementById("captionDownloadLink").href = data.caption_url || "#";
+
+                    // Evaluation Download Link if present
+                    const evalDownloadLink = document.getElementById("evaluationDownloadLink");
+                    if (evalDownloadLink) {
+                        if (data.evaluation_url) {
+                            evalDownloadLink.classList.remove("hidden");
+                            evalDownloadLink.href = data.evaluation_url;
+                        } else {
+                            evalDownloadLink.classList.add("hidden");
+                        }
+                    }
                 } else {
                     alert("Lỗi render: " + data.error);
                 }
