@@ -91,6 +91,9 @@ class AIGenerateRequest(BaseModel):
     matchup_id: str = "courtroom"
     api_key: Optional[str] = None
 
+class SaveKeyRequest(BaseModel):
+    api_key: str
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
     template_path = os.path.join(BASE_DIR, "web", "templates", "index.html")
@@ -115,6 +118,40 @@ async def api_config_status():
         "has_gemini_key": bool(os.environ.get("GEMINI_API_KEY")),
         "has_typesafe_key": bool(os.environ.get("TYPESAFE_API_KEY")),
     }
+
+
+@app.post("/api/save_gemini_key")
+async def api_save_gemini_key(req: SaveKeyRequest):
+    key = req.api_key.strip()
+    if key:
+        os.environ["GEMINI_API_KEY"] = key
+    else:
+        os.environ.pop("GEMINI_API_KEY", None)
+
+    env_path = os.path.join(BASE_DIR, ".env")
+    lines = []
+    found = False
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        new_lines = []
+        for line in lines:
+            if line.strip().startswith("GEMINI_API_KEY="):
+                new_lines.append(f"GEMINI_API_KEY={key}\n")
+                found = True
+            else:
+                new_lines.append(line)
+        if not found:
+            new_lines.append(f"\nGEMINI_API_KEY={key}\n")
+        lines = new_lines
+    else:
+        lines = [f"GEMINI_API_KEY={key}\n"]
+
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+    return {"success": True, "has_key": bool(key)}
+
 
 @app.post("/api/evaluate_script")
 async def api_evaluate_script(req: EvaluateScriptRequest):
@@ -398,4 +435,5 @@ async def get_output_file(file_path: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run("web.app:app", host="127.0.0.1", port=8001)
+    uvicorn.run("web.app:app", host="127.0.0.1", port=8000)
+

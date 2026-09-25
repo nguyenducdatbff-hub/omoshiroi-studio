@@ -90,7 +90,7 @@
                             <button onclick="toggleKeyModal()" class="text-slate-400 hover:text-white text-xs px-1">✕</button>
                         </div>
                         <p class="text-[11px] text-slate-400 leading-relaxed">
-                            Key chỉ được lưu trong trình duyệt này. Khi tạo kịch bản, app gửi key qua máy chủ cục bộ để gọi Gemini.
+                            Key được lưu đồng bộ an toàn vào file <code>.env</code> trên máy và trình duyệt, không bao giờ bị mất khi khởi động lại app.
                         </p>
                         <div class="relative">
                             <input type="password" id="geminiKeyInput" placeholder="Dán Gemini API Key vào đây..." class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3 pr-9 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
@@ -99,11 +99,11 @@
                             </button>
                         </div>
                         <div class="flex gap-2 pt-1">
-                            <button onclick="saveApiKey()" class="flex-1 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">Lưu Key</button>
-                            <button onclick="copySavedApiKey()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold transition border border-slate-700 flex items-center gap-1" title="Sao chép Key để gửi cho người khác">
+                            <button onclick="saveApiKey()" class="flex-1 py-1.5 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition whitespace-nowrap">Lưu Key</button>
+                            <button onclick="copySavedApiKey()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold transition border border-slate-700 flex items-center gap-1 whitespace-nowrap" title="Sao chép Key để gửi cho người khác">
                                 <i class="fa-regular fa-copy"></i> Chép
                             </button>
-                            <button onclick="clearApiKey()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 text-xs transition">Xóa</button>
+                            <button onclick="clearApiKey()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 text-xs transition whitespace-nowrap">Xóa</button>
                         </div>
                     </div>
                 </div>
@@ -532,7 +532,7 @@
         }
 
         async function updateKeyStatus() {
-            const key = localStorage.getItem('omoshiroi_gemini_key');
+            let key = localStorage.getItem('omoshiroi_gemini_key');
             const keyText = document.getElementById("keyStatusText");
             const keyInput = document.getElementById("geminiKeyInput");
             
@@ -546,7 +546,10 @@
                 const res = await fetch("/api/config_status");
                 const data = await res.json();
                 if (data.has_env_key) {
-                    keyText.innerHTML = '<span class="text-emerald-400 font-semibold">Gemini Sẵn Sàng ✓</span>';
+                    keyText.innerHTML = '<span class="text-emerald-400 font-semibold">Gemini Sẵn Sàng (.env) ✓</span>';
+                    if (keyInput && !keyInput.value) {
+                        keyInput.placeholder = "Đã cấu hình trong file .env máy chủ ✓";
+                    }
                     return;
                 }
             } catch (e) {}
@@ -554,31 +557,59 @@
             keyText.innerText = "Cài API Key";
         }
 
+
         function toggleKeyModal() {
             const modal = document.getElementById("keyModal");
             modal.classList.toggle("hidden");
+            if (!modal.classList.contains("hidden")) {
+                const key = localStorage.getItem('omoshiroi_gemini_key');
+                const keyInput = document.getElementById("geminiKeyInput");
+                if (key && keyInput) keyInput.value = key;
+            }
         }
 
-        function saveApiKey() {
+        async function saveApiKey() {
             const val = document.getElementById("geminiKeyInput").value.trim();
             if (val) {
                 localStorage.setItem('omoshiroi_gemini_key', val);
-                alert("Đã lưu key trong trình duyệt. Hãy bấm Tạo Kịch Bản để kiểm tra kết nối Gemini.");
             } else {
                 localStorage.removeItem('omoshiroi_gemini_key');
+            }
+
+            try {
+                await fetch("/api/save_gemini_key", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ api_key: val })
+                });
+            } catch (e) {
+                console.error("Lỗi lưu file .env:", e);
+            }
+
+            if (val) {
+                alert("Đã lưu API Key vĩnh viễn vào hệ thống (.env) và trình duyệt!");
+            } else {
                 alert("Đã xóa API Key, hệ thống sẽ dùng chế độ Offline thông minh.");
             }
             updateKeyStatus();
             toggleKeyModal();
         }
 
-        function clearApiKey() {
+        async function clearApiKey() {
             localStorage.removeItem('omoshiroi_gemini_key');
             document.getElementById("geminiKeyInput").value = "";
+            try {
+                await fetch("/api/save_gemini_key", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ api_key: "" })
+                });
+            } catch (e) {}
             updateKeyStatus();
             toggleKeyModal();
             alert("Đã xóa API Key!");
         }
+
 
         function toggleKeyVisibility() {
             const input = document.getElementById("geminiKeyInput");
