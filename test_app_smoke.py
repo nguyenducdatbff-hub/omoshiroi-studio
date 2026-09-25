@@ -271,29 +271,57 @@ class StudioSmokeTests(unittest.TestCase):
         import json
         from fastapi.testclient import TestClient
         from web.app import app
+        from core.script_evaluator import fingerprint_state
 
         client = TestClient(app)
 
+        dialogue = [{"speaker": "judge", "text": "こんにちは", "emotion": "normal"}]
+        eval_state = {
+            "platform": "tiktok",
+            "content_profile": "irasutoya_short",
+            "target_audience": "Người xem Việt Nam thích anime và hài châm biếm",
+            "target_duration_seconds": 45,
+            "matchup": "courtroom",
+            "title_main": "サクッと笑える",
+            "title_sub": "【裁判】スシロー迷惑テロの末路",
+            "moral_lesson": "ネットの10秒の目立ちたがり、代償は数千万円の借金地獄。",
+            "dialogue": dialogue,
+        }
+        fp = fingerprint_state(eval_state)
+
+        dim_item = {"score": 3.0, "normalized": 0.75, "confidence": 0.9, "uncertain": False, "probabilities": [0.0, 0.1, 0.2, 0.5, 0.2]}
         eval_payload = {
+            "status": "ok",
+            "platform": "tiktok",
+            "content_profile": "irasutoya_short",
+            "target_audience": "Người xem Việt Nam thích anime và hài châm biếm",
+            "target_duration_seconds": 45,
             "rubric_version": "viral-short-v1",
             "model": "jev-latest",
             "viral_score": 78,
             "classification": "recommended",
-            "dimensions": {},
+            "dimensions": {
+                "hook_strength": dim_item,
+                "curiosity_emotion": dim_item,
+                "retention_payoff": dim_item,
+                "share_comment": dim_item
+            },
             "recommendations": [],
             "evaluated_at": "2026-09-23T12:00:00Z",
-            "input_fingerprint": "sha256:somehash",
+            "input_fingerprint": fp,
             "secret_api_key": "MUST_BE_STRIPPED"
         }
+
 
         render_req = {
             "matchup": "courtroom",
             "title_main": "サクッと笑える",
             "title_sub": "【裁判】スシロー迷惑テロの末路",
             "moral_lesson": "ネットの10秒の目立ちたがり、代償は数千万円の借金地獄。",
-            "dialogue": [{"speaker": "judge", "text": "こんにちは", "emotion": "normal"}],
+            "dialogue": dialogue,
             "evaluation": eval_payload
         }
+
 
         with patch("web.app.build_dialogue_timeline", return_value=([], 5.0)), \
              patch("web.app.mix_master_audio", return_value=None), \
@@ -315,8 +343,32 @@ class StudioSmokeTests(unittest.TestCase):
             self.assertEqual(saved_eval["viral_score"], 78)
             self.assertNotIn("secret_api_key", saved_eval)
             self.assertIn("video_filename", saved_eval)
-            self.assertTrue(saved_eval["stale"])  # Fingerprint differed from actual script
+            self.assertFalse(saved_eval.get("stale", False))
+
+
+    def test_excel_import_endpoint(self):
+        from fastapi.testclient import TestClient
+        from web.app import app
+        import os
+
+        client = TestClient(app)
+        sample_path = r"F:\Kich_ban_Tham_phan_Toi_pham_Ban_Toi_Uu.xlsx"
+        if os.path.exists(sample_path):
+            with open(sample_path, "rb") as f:
+                res = client.post(
+                    "/api/import_excel?matchup=courtroom",
+                    files={"file": ("Kich_ban_Tham_phan_Toi_pham_Ban_Toi_Uu.xlsx", f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+                )
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertTrue(data["success"])
+            parsed = data["data"]
+            self.assertIn("dialogue", parsed)
+            self.assertGreater(len(parsed["dialogue"]), 5)
+            self.assertEqual(parsed["dialogue"][0]["speaker"], "speaker_a")
+            self.assertEqual(parsed["dialogue"][1]["speaker"], "speaker_b")
 
 
 if __name__ == "__main__":
     unittest.main()
+

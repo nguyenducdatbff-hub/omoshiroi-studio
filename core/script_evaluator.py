@@ -8,6 +8,7 @@ import os
 import json
 import hashlib
 import logging
+import math
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -184,12 +185,14 @@ def fingerprint_state(state: Dict[str, Any]) -> str:
         "moral_lesson": state.get("moral_lesson", ""),
         "dialogue": [
             {
-                "speaker": d.get("speaker", ""),
-                "text": d.get("text", ""),
-                "emotion": d.get("emotion", "normal")
+                "speaker": d.get("speaker") or "",
+                "text": d.get("text") or "",
+                "text_vi": d.get("text_vi") or "",
+                "emotion": d.get("emotion") or "normal"
             }
             for d in state.get("dialogue", [])
         ]
+
     }
     dumped = json.dumps(canonical_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return f"sha256:{hashlib.sha256(dumped.encode('utf-8')).hexdigest()}"
@@ -214,7 +217,7 @@ def build_recommendations(dimensions: Dict[str, Any], state: Dict[str, Any]) -> 
         weight = dim_info["weight"]
         gap = weight * (4.0 - score)
         
-        if gap > 0.05:  # Điểm chưa tối đa
+        if gap > 0.05 and not uncertain:  # Không suy ra khuyến nghị chỉ từ điểm thiếu tin cậy
             gaps.append({
                 "dim_key": dim_key,
                 "gap": gap,
@@ -225,20 +228,8 @@ def build_recommendations(dimensions: Dict[str, Any], state: Dict[str, Any]) -> 
     # Sắp xếp theo weighted_gap giảm dần
     gaps.sort(key=lambda x: x["gap"], reverse=True)
 
-    # Lọc các tiêu chí: nếu chỉ có 1 tiêu chí và nó uncertain thì bỏ qua
-    valid_gaps = []
-    for item in gaps:
-        if item["uncertain"] and len(gaps) > 1 and item == gaps[0]:
-            # Đẩy uncertain xuống sau nếu có tiêu chí khác chắc chắn hơn
-            continue
-        valid_gaps.append(item)
-
-    # Nếu sau khi lọc rỗng mà có gaps gốc, lấy gaps gốc
-    if not valid_gaps and gaps:
-        valid_gaps = [gaps[0]]
-
     recommendations = []
-    for item in valid_gaps[:3]:
+    for item in gaps[:3]:
         dim_key = item["dim_key"]
         rec = DEFAULT_RECOMMENDATIONS[dim_key].copy()
         
@@ -282,7 +273,7 @@ def sanitize_and_validate_state(script_data: Dict[str, Any]) -> Dict[str, Any]:
     sanitized_dialogue = []
     for idx, d in enumerate(dialogue_raw):
         if not isinstance(d, dict):
-            continue
+            raise EvaluatorValidationError(f"Dòng thoại thứ {idx + 1} không hợp lệ.")
         speaker = str(d.get("speaker") or "speaker").strip()
         text = str(d.get("text") or "").strip()
         text_vi = str(d.get("text_vi") or "").strip() if d.get("text_vi") else None
@@ -350,7 +341,12 @@ async def evaluate_script(
         raise EvaluatorConfigError("Chưa cấu hình TYPESAFE_API_KEY trên server.")
 
     # Chuẩn bị câu hỏi (Score primitives)
-    from typesafe_sdk import Score
+    try:
+        from typesafe_sdk import Score
+    except ImportError:
+        raise EvaluatorUpstreamError(
+            "Thiếu TypeSafe SDK trên môi trường này. Hãy cài dependencies bằng pip install -r requirements.txt."
+        ) from None
 
     questions = {}
     for dim_key, dim_info in DIMENSIONS_SPEC.items():
@@ -382,21 +378,21 @@ async def evaluate_script(
         raise
     except Exception as exc:
         err_type = type(exc).__name__
-        err_msg = str(exc)
-        logger.warning(f"TypeSafe API invocation failed: {err_type}: {err_msg}")
+        # Không ghi/log nội dung exception: upstream có thể chứa dữ liệu nhạy cảm.
+        logger.warning("TypeSafe API invocation failed (%s)", err_type)
 
-        if "timeout" in err_type.lower() or "timeout" in err_msg.lower():
+        if "timeout" in err_type.lower():
             raise EvaluatorTimeoutError() from None
-        if "auth" in err_type.lower() or "unauthorized" in err_msg.lower() or "401" in err_msg or "403" in err_msg:
-            raise EvaluatorUpstreamError("Khóa TYPESAFE_API_KEY không hợp lệ hoặc bị từ chối quyền truy cập.") from None
-        raise EvaluatorUpstreamError(f"Lỗi kết nối tới TypeSafe API: {err_msg}") from None
+        if "auth" in err_type.lower() or "unauthorized" in err_type.lower():
+            raise EvaluatorUpstreamError("TypeSafe từ chối xác thực. Hãy kiểm tra cấu hình API key trên server.") from None
+        raise EvaluatorUpstreamError() from None
 
     # Phân tích và trích xuất điểm từng tiêu chí
     raw_answers = getattr(response, "answers", None)
     if raw_answers is None and isinstance(response, dict):
         raw_answers = response.get("answers", {})
 
-    if not raw_answers:
+    if not isinstance(raw_answers, dict) or not raw_answers:
         raise EvaluatorUpstreamError("Phản hồi từ TypeSafe không chứa kết quả chấm điểm hợp lệ.")
 
     dim_results = {}
@@ -409,8 +405,15 @@ async def evaluate_script(
             raise EvaluatorUpstreamError(f"Phản hồi từ TypeSafe thiếu tiêu chí bắt buộc: '{dim_key}'.")
 
         # Hỗ trợ cả SDK object và dict
-        score_val = float(getattr(ans, "score", None) if hasattr(ans, "score") else ans.get("score", 0.0))
-        conf_val = float(getattr(ans, "confidence", None) if hasattr(ans, "confidence") else ans.get("confidence", 1.0))
+        try:
+            score_val = float(getattr(ans, "score", None) if hasattr(ans, "score") else ans.get("score"))
+            conf_val = float(getattr(ans, "confidence", None) if hasattr(ans, "confidence") else ans.get("confidence"))
+        except (TypeError, ValueError, AttributeError):
+            raise EvaluatorUpstreamError("Phản hồi từ TypeSafe có điểm hoặc confidence không hợp lệ.") from None
+        if not math.isfinite(score_val) or not 0 <= score_val <= 4:
+            raise EvaluatorUpstreamError("Phản hồi từ TypeSafe có điểm ngoài khoảng 0–4.")
+        if not math.isfinite(conf_val) or not 0 <= conf_val <= 1:
+            raise EvaluatorUpstreamError("Phản hồi từ TypeSafe có confidence ngoài khoảng 0–1.")
         
         prob_raw = getattr(ans, "probabilities", None) if hasattr(ans, "probabilities") else ans.get("probabilities")
         prob_list = None
@@ -418,11 +421,19 @@ async def evaluate_script(
             if isinstance(prob_raw, dict):
                 # Sắp xếp theo key số 0, 1, 2, 3, 4
                 try:
-                    prob_list = [float(prob_raw.get(k, prob_raw.get(str(k), 0.0))) for k in range(5)]
-                except Exception:
-                    prob_list = None
+                    prob_list = [float(prob_raw.get(k, prob_raw.get(str(k)))) for k in range(5)]
+                except (TypeError, ValueError):
+                    raise EvaluatorUpstreamError("Phản hồi từ TypeSafe có probabilities không hợp lệ.") from None
             elif isinstance(prob_raw, list):
-                prob_list = [float(p) for p in prob_raw]
+                try:
+                    prob_list = [float(p) for p in prob_raw]
+                except (TypeError, ValueError):
+                    raise EvaluatorUpstreamError("Phản hồi từ TypeSafe có probabilities không hợp lệ.") from None
+            else:
+                raise EvaluatorUpstreamError("Phản hồi từ TypeSafe có probabilities không hợp lệ.")
+            if (len(prob_list) != 5 or any(not math.isfinite(p) or p < 0 or p > 1 for p in prob_list)
+                    or not 0.95 <= sum(prob_list) <= 1.05):
+                raise EvaluatorUpstreamError("Phản hồi từ TypeSafe có probabilities không hợp lệ.")
 
         is_uncertain = conf_val < 0.45
 
@@ -479,5 +490,9 @@ async def evaluate_script(
         "recommendations": recommendations,
         "warnings": [f"Tiêu chí '{weakest_dim}' có độ tin cậy thấp ({dim_results[weakest_dim]['confidence']})"] if dim_results[weakest_dim]["uncertain"] else [],
         "evaluated_at": evaluated_at,
-        "input_fingerprint": fingerprint
+        "input_fingerprint": fingerprint,
+        "platform": clean_state["platform"],
+        "content_profile": clean_state["content_profile"],
+        "target_audience": clean_state["target_audience"],
+        "target_duration_seconds": clean_state["target_duration_seconds"]
     }

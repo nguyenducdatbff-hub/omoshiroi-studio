@@ -177,8 +177,31 @@
                         </p>
                         <p id="aiModeNotice" role="status" class="hidden text-xs text-amber-300 mt-1.5"></p>
                     </div>
+
+                    <!-- Import Script from Excel / CSV -->
+                    <div class="pt-3 border-t border-slate-800">
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-2 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5 text-emerald-400"><i class="fa-solid fa-file-excel"></i> Tải Kịch Bản Từ File Excel / CSV</span>
+                            <span class="text-[11px] text-slate-400 font-normal">Hỗ trợ file .xlsx, .xls, .csv</span>
+                        </label>
+
+                        <div id="dropZone" onclick="document.getElementById('excelFileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)" class="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 bg-slate-900/60 hover:bg-slate-900 rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-3">
+                            <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" onchange="uploadExcelScript(this)" class="hidden">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-file-import"></i>
+                            </div>
+                            <div class="text-left flex-1">
+                                <div id="dropZoneText" class="text-xs font-bold text-slate-200">Bấm để chọn file kịch bản Excel (.xlsx) hoặc Kéo & thả vào đây</div>
+                                <div class="text-[11px] text-slate-400">Tự động điền Nhân vật, Cảm xúc, Thoại JP, Dịch VI & Bài học răn đe!</div>
+                            </div>
+                            <div id="excelLoadingSpinner" class="hidden flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i> Đang đọc file...
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
 
             <!-- Step 3: Headers & Moral Lesson Card -->
             <div class="glass-panel p-6 rounded-2xl shadow-xl space-y-4">
@@ -805,6 +828,98 @@
                 btn.disabled = false;
             }
         }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const zone = document.getElementById("dropZone");
+            if (zone) zone.classList.add("border-emerald-400", "bg-emerald-500/10");
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const zone = document.getElementById("dropZone");
+            if (zone) zone.classList.remove("border-emerald-400", "bg-emerald-500/10");
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const zone = document.getElementById("dropZone");
+            if (zone) zone.classList.remove("border-emerald-400", "bg-emerald-500/10");
+            if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+                uploadExcelFile(e.dataTransfer.files[0]);
+            }
+        }
+
+        function uploadExcelScript(input) {
+            if (input.files && input.files.length > 0) {
+                uploadExcelFile(input.files[0]);
+            }
+        }
+
+        async function uploadExcelFile(file) {
+            if (!file) return;
+            const fileName = file.name.toLowerCase();
+            const validExts = ['.xlsx', '.xls', '.csv'];
+            const isValid = validExts.some(ext => fileName.endsWith(ext));
+            if (!isValid) {
+                alert("Vui lòng chọn file kịch bản Excel (.xlsx, .xls) hoặc CSV (.csv)!");
+                return;
+            }
+
+            const spinner = document.getElementById("excelLoadingSpinner");
+            const dropText = document.getElementById("dropZoneText");
+            if (spinner) spinner.classList.remove("hidden");
+
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("matchup", currentMatchupId || "courtroom");
+
+            try {
+                const res = await fetch("/api/import_excel?matchup=" + encodeURIComponent(currentMatchupId || "courtroom"), {
+                    method: "POST",
+                    body: formData
+                });
+                const result = await res.json();
+
+                if (!res.ok || !result.success) {
+                    throw new Error(result.detail || result.error || "Không thể đọc kịch bản từ file Excel.");
+                }
+
+                const data = result.data;
+                if (data.title_sub) {
+                    document.getElementById("titleSubInput").value = data.title_sub;
+                }
+                if (data.moral_lesson) {
+                    document.getElementById("moralLessonInput").value = data.moral_lesson;
+                }
+                if (data.moral_lesson_vi) {
+                    document.getElementById("moralLessonViInput").value = data.moral_lesson_vi;
+                }
+
+                if (Array.isArray(data.dialogue) && data.dialogue.length > 0) {
+                    currentDialogue = data.dialogue;
+                    renderDialogueEditor();
+                    markEvaluationStale();
+                }
+
+                if (dropText) {
+                    dropText.textContent = `✅ Đã tải kịch bản: ${file.name} (${data.dialogue.length} câu thoại)`;
+                }
+            } catch (err) {
+                alert(`Lỗi khi tải file kịch bản: ${err.message}`);
+                if (dropText) {
+                    dropText.textContent = `⚠️ Lỗi tải file ${file.name}`;
+                }
+            } finally {
+                if (spinner) spinner.classList.add("hidden");
+                const input = document.getElementById("excelFileInput");
+                if (input) input.value = "";
+            }
+        }
+
 
         function markEvaluationStale() {
             if (latestEvaluation) {

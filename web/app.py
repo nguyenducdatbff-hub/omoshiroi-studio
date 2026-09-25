@@ -2,10 +2,12 @@ import os
 import sys
 import uuid
 import asyncio
+import math
 import shutil
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 
@@ -43,6 +45,8 @@ from core.script_evaluator import (
     EvaluatorTimeoutError,
     EvaluatorUpstreamError,
 )
+from core.excel_importer import parse_script_file
+
 
 
 app = FastAPI(title="OMOSHIROI - Satirical Parable Shorts Studio")
@@ -151,6 +155,25 @@ async def api_generate_ai(req: AIGenerateRequest):
     except GeminiGenerationError as error:
         raise HTTPException(status_code=502, detail=str(error)) from None
 
+@app.post("/api/import_excel")
+async def api_import_excel(file: UploadFile = File(...), matchup: Optional[str] = "courtroom"):
+    try:
+        content = await file.read()
+        matchup_info = None
+        if matchup:
+            try:
+                matchup_info = get_matchup(matchup)
+            except Exception:
+                pass
+        parsed = parse_script_file(content, file.filename, matchup_info)
+        return {"success": True, "data": parsed}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.exception("Error processing Excel file upload")
+        raise HTTPException(status_code=500, detail=f"Lỗi đọc file kịch bản: {str(e)}")
+
+
 @app.post("/api/render_video")
 async def api_render_video(req: RenderRequest):
     req_temp = None
@@ -230,28 +253,107 @@ async def api_render_video(req: RenderRequest):
             
         # 5. Save evaluation.json if present (sanitized copy)
         evaluation_file_saved = False
-        if req.evaluation and isinstance(req.evaluation, dict) and req.evaluation.get("viral_score") is not None:
+        if req.evaluation and isinstance(req.evaluation, dict):
             import json
-            eval_path = os.path.join(topic_dir, "evaluation.json")
-            safe_eval = {k: v for k, v in req.evaluation.items() if not k.lower().endswith("key")}
-            eval_fp = safe_eval.get("input_fingerprint") or safe_eval.get("fingerprint")
-            current_fp = fingerprint_state({
-                "platform": safe_eval.get("platform", "tiktok"),
-                "content_profile": safe_eval.get("content_profile", "irasutoya_short"),
-                "target_audience": safe_eval.get("target_audience", "Người xem Việt Nam thích anime và hài châm biếm"),
-                "target_duration_seconds": safe_eval.get("target_duration_seconds", 45),
+            submitted_eval = req.evaluation
+            eval_fp = submitted_eval.get("input_fingerprint")
+            evaluation_state = {
+                "platform": submitted_eval.get("platform"),
+                "content_profile": submitted_eval.get("content_profile"),
+                "target_audience": submitted_eval.get("target_audience"),
+                "target_duration_seconds": submitted_eval.get("target_duration_seconds"),
                 "matchup": req.matchup,
                 "title_main": req.title_main,
                 "title_sub": req.title_sub,
                 "moral_lesson": req.moral_lesson,
                 "dialogue": dialogue_dicts,
-            })
-            if eval_fp and eval_fp != current_fp:
-                safe_eval["stale"] = True
-            safe_eval["video_filename"] = out_filename
-            with open(eval_path, "w", encoding="utf-8") as f:
-                json.dump(safe_eval, f, ensure_ascii=False, indent=2)
-            evaluation_file_saved = True
+            }
+            current_fp = fingerprint_state(evaluation_state)
+            score = submitted_eval.get("viral_score")
+            valid_eval = (
+                submitted_eval.get("status") == "ok"
+                and isinstance(score, int) and not isinstance(score, bool) and 0 <= score <= 100
+                and submitted_eval.get("classification") in {"recommended", "revise", "major_revision"}
+                and isinstance(submitted_eval.get("dimensions"), dict)
+                and isinstance(eval_fp, str) and eval_fp == current_fp
+                and not submitted_eval.get("stale", False)
+            )
+            if valid_eval:
+                known_dimensions = {"hook_strength", "curiosity_emotion", "retention_payoff", "share_comment"}
+                dimensions = {}
+                for key in known_dimensions:
+                    value = submitted_eval["dimensions"].get(key)
+                    required = ("score", "normalized", "confidence", "uncertain")
+                    if not isinstance(value, dict) or any(name not in value for name in required):
+                        dimensions = {}
+                        break
+                    try:
+                        score_value = float(value["score"])
+                        normalized_value = float(value["normalized"])
+                        confidence_value = float(value["confidence"])
+                    except (TypeError, ValueError):
+                        dimensions = {}
+                        break
+                    probabilities = value.get("probabilities")
+                    if probabilities is not None and (
+                        not isinstance(probabilities, list) or len(probabilities) != 5
+                        or any(not isinstance(p, (int, float)) or not math.isfinite(p) or not 0 <= p <= 1 for p in probabilities)
+                    ):
+                        dimensions = {}
+                        break
+                    if (
+                        not math.isfinite(score_value) or not 0 <= score_value <= 4
+                        or not math.isfinite(normalized_value) or not 0 <= normalized_value <= 1
+                        or not math.isfinite(confidence_value) or not 0 <= confidence_value <= 1
+                        or not isinstance(value["uncertain"], bool)
+                    ):
+                        dimensions = {}
+                        break
+                    dimensions[key] = {
+                        "score": score_value,
+                        "normalized": normalized_value,
+                        "confidence": confidence_value,
+                        "uncertain": value["uncertain"],
+                        "probabilities": probabilities,
+                    }
+                if len(dimensions) == len(known_dimensions):
+                    recommendations = submitted_eval.get("recommendations", [])
+                    if not isinstance(recommendations, list):
+                        recommendations = []
+                    safe_recommendations = [
+                        {
+                            "code": str(item.get("code", ""))[:80],
+                            "dimension": str(item.get("dimension", ""))[:80],
+                            "message": str(item.get("message", ""))[:500],
+                        }
+                        for item in recommendations[:3] if isinstance(item, dict)
+                    ]
+                    warnings = submitted_eval.get("warnings", [])
+                    if not isinstance(warnings, list):
+                        warnings = []
+                    safe_eval = {
+                        "status": "ok",
+                        "model": str(submitted_eval.get("model", ""))[:100],
+                        "rubric_version": str(submitted_eval.get("rubric_version", ""))[:100],
+                        "viral_score": score,
+                        "classification": submitted_eval["classification"],
+                        "overall_confidence": submitted_eval.get("overall_confidence"),
+                        "dimensions": dimensions,
+                        "weakest_dimension": submitted_eval.get("weakest_dimension") if submitted_eval.get("weakest_dimension") in known_dimensions else None,
+                        "recommendations": safe_recommendations,
+                        "warnings": [str(item)[:500] for item in warnings[:4]],
+                        "evaluated_at": str(submitted_eval.get("evaluated_at", ""))[:100],
+                        "input_fingerprint": current_fp,
+                        "platform": evaluation_state["platform"],
+                        "content_profile": evaluation_state["content_profile"],
+                        "target_audience": evaluation_state["target_audience"],
+                        "target_duration_seconds": evaluation_state["target_duration_seconds"],
+                        "video_filename": out_filename,
+                    }
+                    eval_path = os.path.join(topic_dir, "evaluation.json")
+                    with open(eval_path, "w", encoding="utf-8") as f:
+                        json.dump(safe_eval, f, ensure_ascii=False, indent=2)
+                    evaluation_file_saved = True
 
         import urllib.parse
         encoded_folder = urllib.parse.quote(folder_name)

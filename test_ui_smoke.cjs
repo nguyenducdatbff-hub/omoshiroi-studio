@@ -43,8 +43,15 @@ assert(html.includes('id="evalErrorBox"'), 'Error box exists');
 assert(html.includes('id="evalStaleBanner"'), 'Stale banner exists');
 assert(html.includes('id="evaluationDownloadLink"'), 'Evaluation download link exists');
 
+// Verify Excel/CSV Import elements exist in HTML template
+assert(html.includes('id="excelFileInput"'), 'Excel file input exists in index.html');
+assert(html.includes('id="dropZone"'), 'Excel dropZone exists in index.html');
+assert(html.includes('id="excelLoadingSpinner"'), 'Excel loading spinner exists');
+assert(html.includes('uploadExcelScript'), 'uploadExcelScript handler bound');
+
 // Verify evaluator panel is positioned before renderBtn
 const evalPos = html.indexOf('id="evaluatorPanel"');
+
 const renderPos = html.indexOf('id="renderBtn"');
 assert(evalPos > 0 && renderPos > evalPos, 'Evaluator panel is positioned before render button');
 
